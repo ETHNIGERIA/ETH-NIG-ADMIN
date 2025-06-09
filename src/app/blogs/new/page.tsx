@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { db } from '@/firebase';
 import { collection, addDoc, Timestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -121,7 +121,7 @@ const CreateBlog = () => {
   };
 
   return (
-    <AdminLayout>
+    <>
       <div className="max-w-4xl mx-auto p-6">
         <h1 className="text-2xl font-bold mb-6">{blogId ? 'Edit Blog Post' : 'Create New Blog Post'}</h1>
 
@@ -208,8 +208,18 @@ const CreateBlog = () => {
           </button>
         </form>
       </div>
-    </AdminLayout>
+    </>
   );
 };
 
-export default CreateBlog;
+const NewBlog = () => {
+  return (
+    <AdminLayout>
+      <Suspense fallback={<div>Loading...</div>}>
+        <CreateBlog />
+      </Suspense>
+    </AdminLayout>
+  )
+}
+
+export default NewBlog;
