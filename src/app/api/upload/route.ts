@@ -19,7 +19,7 @@ async function parseForm(req: Request): Promise<{ file: File }> {
   return new Promise((resolve, reject) => {
     const form = new IncomingForm({ keepExtensions: true });
 
-    form.parse(req as any, (err: any, fields: any, files: { file: any[]; }) => {
+    form.parse(req as any, (err: any, fields: any, files: any) => {
       if (err) return reject(err);
       resolve({ file: files.file[0] });
     });
