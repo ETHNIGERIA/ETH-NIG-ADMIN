@@ -1,78 +1,255 @@
+// 'use client';
+
+// import AdminLayout from '@/components/AdminLayout';
+// import React, { useEffect, useState } from 'react';
+// import { Calendar, Users, Newspaper, Briefcase } from 'lucide-react';
+// import { collection, getCountFromServer } from 'firebase/firestore';
+// import { db } from '@/firebase';
+// import Loader from '@/components/Loader';
+
+// const Dashboard = () => {
+//   const [loading, setLoading] = useState(true);
+//   const [counts, setCounts] = useState({
+//     events: 0,
+//     communities: 0,
+//     blogPosts: 0,
+//     careers: 0,
+//   });
+
+//   const fetchCounts = async () => {
+//     setLoading(true);
+//     try {
+//       const [eventsSnap, communitiesSnap, blogsSnap, careersSnap] = await Promise.all([
+//         getCountFromServer(collection(db, 'events')),
+//         getCountFromServer(collection(db, 'communities')),
+//         getCountFromServer(collection(db, 'blogs')),
+//         getCountFromServer(collection(db, 'careers')),
+//       ]);
+
+//       setCounts({
+//         events: eventsSnap.data().count,
+//         communities: communitiesSnap.data().count,
+//         blogPosts: blogsSnap.data().count,
+//         careers: careersSnap.data().count,
+//       });
+//     } catch (err) {
+//       console.error('Error fetching dashboard stats:', err);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   useEffect(() => {
+//     fetchCounts();
+//   }, []);
+
+//   const stats = [
+//     { label: 'Total Events', value: counts.events, icon: Calendar },
+//     { label: 'Total Communities', value: counts.communities, icon: Users },
+//     { label: 'Total Blog Posts', value: counts.blogPosts, icon: Newspaper },
+//     { label: 'Total Careers', value: counts.careers, icon: Briefcase },
+//   ];
+
+//   return (
+//     <AdminLayout>
+//       <div>
+//         <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+
+//         {loading ? (
+//           <Loader />
+//         ) : (
+//           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+//             {stats.map(({ label, value, icon: Icon }, index) => (
+//               <div
+//                 key={index}
+//                 className="bg-white rounded-xl shadow p-6 flex items-center space-x-4"
+//               >
+//                 <div className="p-3 bg-[#3C9B3E] rounded-lg">
+//                   <Icon className="w-8 h-8 text-white" />
+//                 </div>
+//                 <div>
+//                   <p className="text-gray-500 text-sm">{label}</p>
+//                   <h2 className="text-3xl font-semibold mt-2">{value}</h2>
+//                 </div>
+//               </div>
+//             ))}
+//           </div>
+//         )}
+//       </div>
+//     </AdminLayout>
+//   );
+// };
+
+// export default Dashboard;
+
 'use client';
 
 import AdminLayout from '@/components/AdminLayout';
 import React, { useEffect, useState } from 'react';
-import { Calendar, Users, Newspaper, Briefcase } from 'lucide-react';
+import { Calendar, Users, Newspaper, Briefcase, Handshake, TrendingUp, ShieldCheck, Database, HardDrive } from 'lucide-react';
 import { collection, getCountFromServer } from 'firebase/firestore';
-import { db } from '@/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { db, auth } from '@/firebase';
 import Loader from '@/components/Loader';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
+  const [adminUser, setAdminUser] = useState<User | null>(null);
   const [counts, setCounts] = useState({
     events: 0,
     communities: 0,
     blogPosts: 0,
     careers: 0,
+    partnerships: 0,
   });
 
+  const getAdminName = () => {
+    if (adminUser?.displayName) return adminUser.displayName;
+    if (adminUser?.email) return adminUser.email.split('@')[0];
+    return 'Admin';
+  };
+
   const fetchCounts = async () => {
-    setLoading(true);
     try {
-      const [eventsSnap, communitiesSnap, blogsSnap, careersSnap] = await Promise.all([
-        getCountFromServer(collection(db, 'events')),
-        getCountFromServer(collection(db, 'communities')),
-        getCountFromServer(collection(db, 'blogs')),
-        getCountFromServer(collection(db, 'careers')),
-      ]);
+      const collections = ['events', 'communities', 'blogs', 'careers', 'partnership_inquiries'];
+      const [ev, comm, blog, car, part] = await Promise.all(
+        collections.map(col => getCountFromServer(collection(db, col)))
+      );
 
       setCounts({
-        events: eventsSnap.data().count,
-        communities: communitiesSnap.data().count,
-        blogPosts: blogsSnap.data().count,
-        careers: careersSnap.data().count,
+        events: ev.data().count,
+        communities: comm.data().count,
+        blogPosts: blog.data().count,
+        careers: car.data().count,
+        partnerships: part.data().count,
       });
     } catch (err) {
-      console.error('Error fetching dashboard stats:', err);
-    } finally {
-      setLoading(false);
+      console.error('Stats Error:', err);
     }
   };
 
   useEffect(() => {
-    fetchCounts();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setAdminUser(user);
+      fetchCounts().finally(() => setLoading(false));
+    });
+    return () => unsubscribe();
   }, []);
 
   const stats = [
-    { label: 'Total Events', value: counts.events, icon: Calendar },
-    { label: 'Total Communities', value: counts.communities, icon: Users },
-    { label: 'Total Blog Posts', value: counts.blogPosts, icon: Newspaper },
-    { label: 'Total Careers', value: counts.careers, icon: Briefcase },
+    { label: 'Partnership Inquiries', value: counts.partnerships, icon: Handshake, color: 'bg-blue-600' },
+    { label: 'Total Events', value: counts.events, icon: Calendar, color: 'bg-green-600' },
+    { label: 'Total Communities', value: counts.communities, icon: Users, color: 'bg-purple-600' },
+    { label: 'Total Blog Posts', value: counts.blogPosts, icon: Newspaper, color: 'bg-orange-600' },
+    { label: 'Total Careers', value: counts.careers, icon: Briefcase, color: 'bg-red-600' },
   ];
 
   return (
     <AdminLayout>
-      <div>
-        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      <div className="max-w-7xl mx-auto space-y-8 pb-10">
+        {/* Welcome Hero */}
+        <div className="bg-[#3C9B3E] rounded-3xl p-8 md:p-12 text-white shadow-xl flex justify-between items-center relative overflow-hidden">
+          <div className="relative z-10">
+            <h1 className="text-4xl font-extrabold capitalize leading-tight">
+              Welcome back, <br />{getAdminName()}!
+            </h1>
+            <p className="mt-4 opacity-90 text-lg max-w-md">
+              The Ethereum Nigeria ecosystem activities overview.
+            </p>
+          </div>
+          <TrendingUp className="w-48 h-48 absolute -right-8 -bottom-8 opacity-10 rotate-12" />
+        </div>
 
         {loading ? (
-          <Loader />
+          <div className="h-64 flex items-center justify-center"><Loader /></div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {stats.map(({ label, value, icon: Icon }, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-xl shadow p-6 flex items-center space-x-4"
-              >
-                <div className="p-3 bg-[#3C9B3E] rounded-lg">
-                  <Icon className="w-8 h-8 text-white" />
+          <div className="space-y-8">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {stats.map(({ label, value, icon: Icon, color }, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex items-center justify-between group hover:border-[#3C9B3E] transition-all"
+                >
+                  <div className="space-y-1">
+                    <p className="text-gray-500 font-medium">{label}</p>
+                    <h2 className="text-4xl font-bold text-gray-900">{value}</h2>
+                  </div>
+                  <div className={`p-4 ${color} rounded-2xl text-white shadow-lg transform group-hover:scale-110 transition-transform`}>
+                    <Icon className="w-8 h-8" />
+                  </div>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-sm">{label}</p>
-                  <h2 className="text-3xl font-semibold mt-2">{value}</h2>
+              ))}
+            </div>
+
+            {/* System Status & Recent Activity Sections */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Partnership Preview - Placeholder */}
+              <div className="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-gray-100 min-h-[400px]">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold">Recent Partnership Submissions</h3>
+                  <button className="text-sm font-semibold text-[#3C9B3E] hover:underline">View All</button>
+                </div>
+                <div className="flex flex-col items-center justify-center h-64 text-gray-400 border-2 border-dashed border-gray-50 rounded-2xl">
+                  <Handshake className="w-16 h-16 mb-4 opacity-10" />
+                  <p className="text-center px-6">We'll populate this with the latest inquiries from your database in the next step.</p>
                 </div>
               </div>
-            ))}
+              
+              {/* System Health / Storage Section */}
+              <div className="space-y-6">
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                    <ShieldCheck className="w-6 h-6 text-[#3C9B3E]" />
+                    System Overview
+                  </h3>
+                  
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-green-50 rounded-lg text-green-600">
+                        <Database className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between mb-1 text-sm font-medium">
+                          <span>Database Usage</span>
+                          <span className="text-green-600 font-bold italic text-xs">Healthy</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div className="bg-[#3C9B3E] h-2 rounded-full w-[12%]"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                        <HardDrive className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between mb-1 text-sm font-medium">
+                          <span>Media Storage</span>
+                          <span className="text-gray-400 font-normal text-xs italic text-blue-600">9% used</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div className="bg-blue-500 h-2 rounded-full w-[9%]"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <hr className="border-gray-50" />
+                    
+                    <div className="pt-2">
+                      <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-3">Logged in as</p>
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                        <div className="w-8 h-8 rounded-full bg-[#3C9B3E] flex items-center justify-center text-white text-xs font-bold">
+                          {getAdminName().charAt(0).toUpperCase()}
+                        </div>
+                        <p className="text-sm font-medium text-gray-700 truncate">{adminUser?.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
