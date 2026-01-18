@@ -13,6 +13,7 @@
     "clsx": "^2.1.1",
     "firebase": "^11.9.0",
     "formidable": "^3.5.4",
+    "framer-motion": "^12.27.0",
     "lucide-react": "^0.513.0",
     "md-editor-rt": "^5.6.1",
     "next": "15.3.3",
@@ -28,5 +29,6 @@
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "packageManager": "yarn@1.22.21+sha1.1959a18351b811cdeedbd484a8f86c3cc3bbaf72"
 }
