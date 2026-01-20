@@ -1,96 +1,25 @@
-// 'use client';
-
-// import AdminLayout from '@/components/AdminLayout';
-// import React, { useEffect, useState } from 'react';
-// import { Calendar, Users, Newspaper, Briefcase } from 'lucide-react';
-// import { collection, getCountFromServer } from 'firebase/firestore';
-// import { db } from '@/firebase';
-// import Loader from '@/components/Loader';
-
-// const Dashboard = () => {
-//   const [loading, setLoading] = useState(true);
-//   const [counts, setCounts] = useState({
-//     events: 0,
-//     communities: 0,
-//     blogPosts: 0,
-//     careers: 0,
-//   });
-
-//   const fetchCounts = async () => {
-//     setLoading(true);
-//     try {
-//       const [eventsSnap, communitiesSnap, blogsSnap, careersSnap] = await Promise.all([
-//         getCountFromServer(collection(db, 'events')),
-//         getCountFromServer(collection(db, 'communities')),
-//         getCountFromServer(collection(db, 'blogs')),
-//         getCountFromServer(collection(db, 'careers')),
-//       ]);
-
-//       setCounts({
-//         events: eventsSnap.data().count,
-//         communities: communitiesSnap.data().count,
-//         blogPosts: blogsSnap.data().count,
-//         careers: careersSnap.data().count,
-//       });
-//     } catch (err) {
-//       console.error('Error fetching dashboard stats:', err);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchCounts();
-//   }, []);
-
-//   const stats = [
-//     { label: 'Total Events', value: counts.events, icon: Calendar },
-//     { label: 'Total Communities', value: counts.communities, icon: Users },
-//     { label: 'Total Blog Posts', value: counts.blogPosts, icon: Newspaper },
-//     { label: 'Total Careers', value: counts.careers, icon: Briefcase },
-//   ];
-
-//   return (
-//     <AdminLayout>
-//       <div>
-//         <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
-
-//         {loading ? (
-//           <Loader />
-//         ) : (
-//           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-//             {stats.map(({ label, value, icon: Icon }, index) => (
-//               <div
-//                 key={index}
-//                 className="bg-white rounded-xl shadow p-6 flex items-center space-x-4"
-//               >
-//                 <div className="p-3 bg-[#3C9B3E] rounded-lg">
-//                   <Icon className="w-8 h-8 text-white" />
-//                 </div>
-//                 <div>
-//                   <p className="text-gray-500 text-sm">{label}</p>
-//                   <h2 className="text-3xl font-semibold mt-2">{value}</h2>
-//                 </div>
-//               </div>
-//             ))}
-//           </div>
-//         )}
-//       </div>
-//     </AdminLayout>
-//   );
-// };
-
-// export default Dashboard;
-
 'use client';
 
 import AdminLayout from '@/components/AdminLayout';
 import React, { useEffect, useState } from 'react';
-import { Calendar, Users, Newspaper, Briefcase, Handshake, TrendingUp, ShieldCheck, Database, HardDrive } from 'lucide-react';
+import { 
+  Calendar, 
+  Users, 
+  Newspaper, 
+  Briefcase, 
+  Handshake,
+  GlobeIcon, 
+  TrendingUp, 
+  ShieldCheck, 
+  Database, 
+  HardDrive,
+  BadgeDollarSign // Added for Sponsors
+} from 'lucide-react';
 import { collection, getCountFromServer } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { db, auth } from '@/firebase';
 import Loader from '@/components/Loader';
+import { label } from 'framer-motion/client';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -101,6 +30,8 @@ const Dashboard = () => {
     blogPosts: 0,
     careers: 0,
     partnerships: 0,
+    sponsorships: 0, // Added sponsorship count
+    community_proposals: 0,
   });
 
   const getAdminName = () => {
@@ -111,8 +42,18 @@ const Dashboard = () => {
 
   const fetchCounts = async () => {
     try {
-      const collections = ['events', 'communities', 'blogs', 'careers', 'partnership_inquiries'];
-      const [ev, comm, blog, car, part] = await Promise.all(
+      // Added 'sponsor_inquiries' to the collection list
+      const collections = [
+        'events', 
+        'communities', 
+        'blogs', 
+        'careers', 
+        'partnership_inquiries',
+        'sponsor_inquiries',
+        'community_proposals' 
+      ];
+      
+      const [ev, comm, blog, car, part, spon, comm_prop] = await Promise.all(
         collections.map(col => getCountFromServer(collection(db, col)))
       );
 
@@ -122,6 +63,8 @@ const Dashboard = () => {
         blogPosts: blog.data().count,
         careers: car.data().count,
         partnerships: part.data().count,
+        sponsorships: spon.data().count,
+        community_proposals: comm_prop.data().count,
       });
     } catch (err) {
       console.error('Stats Error:', err);
@@ -136,8 +79,11 @@ const Dashboard = () => {
     return () => unsubscribe();
   }, []);
 
+  // Updated stats array to include Sponsorships
   const stats = [
     { label: 'Partnership Inquiries', value: counts.partnerships, icon: Handshake, color: 'bg-blue-600' },
+    { label: 'Community Proposals', value: counts.community_proposals, icon: GlobeIcon, color: 'bg-yellow-600' },
+    { label: 'Sponsor Inquiries', value: counts.sponsorships, icon: BadgeDollarSign, color: 'bg-emerald-600' }, // New Stat Card
     { label: 'Total Events', value: counts.events, icon: Calendar, color: 'bg-green-600' },
     { label: 'Total Communities', value: counts.communities, icon: Users, color: 'bg-purple-600' },
     { label: 'Total Blog Posts', value: counts.blogPosts, icon: Newspaper, color: 'bg-orange-600' },
@@ -164,7 +110,7 @@ const Dashboard = () => {
           <div className="h-64 flex items-center justify-center"><Loader /></div>
         ) : (
           <div className="space-y-8">
-            {/* Stats Grid */}
+            {/* Stats Grid - Now shows 6 items (3 per row on LG screens) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {stats.map(({ label, value, icon: Icon, color }, index) => (
                 <div
@@ -184,15 +130,17 @@ const Dashboard = () => {
 
             {/* System Status & Recent Activity Sections */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Partnership Preview - Placeholder */}
-              <div className="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-gray-100 min-h-[400px]">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-bold">Recent Partnership Submissions</h3>
-                  <button className="text-sm font-semibold text-[#3C9B3E] hover:underline">View All</button>
-                </div>
-                <div className="flex flex-col items-center justify-center h-64 text-gray-400 border-2 border-dashed border-gray-50 rounded-2xl">
-                  <Handshake className="w-16 h-16 mb-4 opacity-10" />
-                  <p className="text-center px-6">We'll populate this with the latest inquiries from your database in the next step.</p>
+              {/* Submission Previews */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 min-h-[300px]">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold">Recent Sponsorship & Partnerships</h3>
+                    <button className="text-sm font-semibold text-[#3C9B3E] hover:underline">View All</button>
+                  </div>
+                  <div className="flex flex-col items-center justify-center h-48 text-gray-400 border-2 border-dashed border-gray-50 rounded-2xl">
+                    <BadgeDollarSign className="w-16 h-16 mb-4 opacity-10" />
+                    <p className="text-center px-6 text-sm">Latest inquiries will appear here after database integration.</p>
+                  </div>
                 </div>
               </div>
               
@@ -227,7 +175,7 @@ const Dashboard = () => {
                       <div className="flex-1">
                         <div className="flex justify-between mb-1 text-sm font-medium">
                           <span>Media Storage</span>
-                          <span className="text-gray-400 font-normal text-xs italic text-blue-600">9% used</span>
+                          <span className="text-blue-600 font-normal text-xs italic">9% used</span>
                         </div>
                         <div className="w-full bg-gray-100 rounded-full h-2">
                           <div className="bg-blue-500 h-2 rounded-full w-[9%]"></div>
