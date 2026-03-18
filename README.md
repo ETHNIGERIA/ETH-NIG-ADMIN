@@ -1,36 +1,139 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ETH Nigeria Admin
 
-## Getting Started
+Next.js admin application for managing events, content, uploads, and Paystack-backed event payments.
 
-First, run the development server:
+## Development
+
+Run the app locally:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Validation:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run lint
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment
 
-## Learn More
+Create `.env.local` with the values below.
 
-To learn more about Next.js, take a look at the following resources:
+### Firebase client
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Firebase admin
 
-## Deploy on Vercel
+Use either explicit service-account credentials:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```env
+FIREBASE_ADMIN_PROJECT_ID=
+FIREBASE_ADMIN_CLIENT_EMAIL=
+FIREBASE_ADMIN_PRIVATE_KEY=
+FIREBASE_ADMIN_USE_DEFAULT_CREDENTIALS=false
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+or platform default credentials:
+
+```env
+FIREBASE_ADMIN_PROJECT_ID=
+FIREBASE_ADMIN_USE_DEFAULT_CREDENTIALS=true
+```
+
+### Paystack
+
+```env
+PAYSTACK_SECRET_KEY=
+PAYSTACK_WEBHOOK_SECRET=
+PAYSTACK_CALLBACK_URL=
+APP_BASE_URL=http://localhost:3000
+```
+
+Notes:
+- `PAYSTACK_CALLBACK_URL` falls back to `APP_BASE_URL` if not set.
+- `PAYSTACK_WEBHOOK_SECRET` falls back to `PAYSTACK_SECRET_KEY` in code, but you should set `PAYSTACK_WEBHOOK_SECRET` explicitly in production.
+
+### Mail acknowledgement API
+
+```env
+MAIL_BASE_URL=http://localhost:3000
+```
+
+Used by the payment flow to call:
+
+```text
+POST {MAIL_BASE_URL}/api/payment/send-acknowledgement
+```
+
+Request body sent by the app:
+
+```json
+{
+  "fullName": "Jane Doe",
+  "email": "jane@example.com",
+  "amount": "₦50,000",
+  "eventName": "Ethereum Nigeria Summit 2026",
+  "paymentDate": "March 18, 2026",
+  "eventDate": "April 12, 2026"
+}
+```
+
+### Uploads
+
+```env
+CLOUDINARY_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+```
+
+### CORS
+
+```env
+CORS_ALLOW_ALL=true
+CORS_ALLOWED_ORIGINS=*
+```
+
+Current defaults from the code:
+- `CORS_ALLOWED_ORIGINS` defaults to `*`
+- `CORS_ALLOW_ALL` defaults to `true` unless explicitly set to `false`
+- Result: CORS is effectively open by default
+
+For production, lock this down:
+
+```env
+CORS_ALLOW_ALL=false
+CORS_ALLOWED_ORIGINS=https://admin.example.com,https://www.example.com
+```
+
+## Payment Security Notes
+
+The Paystack flow currently applies these controls:
+- Payment initialization is idempotent per `eventId + email`
+- Each Paystack `reference` is stored as its own immutable payment-attempt record
+- Webhook signatures are verified with HMAC SHA-512
+- Signature comparison uses `timingSafeEqual`
+- Successful charges are reconciled against expected amount, currency, and customer email before access is granted
+- Webhook and manual verify routes share the same finalization logic to avoid drift
+
+Recommended deployment posture:
+- Set a dedicated `PAYSTACK_WEBHOOK_SECRET`
+- Do not expose `PAYSTACK_SECRET_KEY` to the client
+- Restrict CORS in production
+- Keep `MAIL_BASE_URL` pointed at a trusted internal or controlled service
+- Treat Firebase admin credentials as server-only secrets
+
+## Known Warning
+
+`npm run build` currently succeeds with one warning from [src/app/api/upload/route.ts](/home/codetective/workdir/ETH-NIG-ADMIN/src/app/api/upload/route.ts) because it uses deprecated `config` export syntax for Next.js route handlers.

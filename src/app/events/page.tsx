@@ -299,7 +299,27 @@ type EventType = {
   image?: string;
   description?: string;
   link?: string;
+  isPayable?: boolean;
+  price?: number | null;
+  currency?: string;
+  paymentDescription?: string;
+  paymentBenefits?: string[];
   date?: { seconds: number; nanoseconds?: number } | any;
+};
+
+const formatEventPrice = (event: EventType) => {
+  if (!event.isPayable || event.price == null) {
+    return 'Free';
+  }
+
+  try {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: event.currency || 'NGN',
+    }).format(event.price);
+  } catch {
+    return `${event.currency || 'NGN'} ${event.price}`;
+  }
 };
 
 const Events = () => {
@@ -437,6 +457,7 @@ const Events = () => {
                 <tr>
                   <th className="p-5 text-xs uppercase font-bold text-[#686764]">Title</th>
                   <th className="p-5 text-xs uppercase font-bold text-[#686764]">Location</th>
+                  <th className="p-5 text-xs uppercase font-bold text-[#686764]">Pricing</th>
                   <th className="p-5 text-xs uppercase font-bold text-[#686764]">Date</th>
                   <th className="p-5 text-xs uppercase font-bold text-[#686764] text-right">Actions</th>
                 </tr>
@@ -446,6 +467,11 @@ const Events = () => {
                   <tr key={event.id} className="hover:bg-[#FEFAF3]/50 transition-colors">
                     <td className="p-5 font-semibold text-[#131313]">{event.title}</td>
                     <td className="p-5 text-[#686764] text-sm">{event.location}</td>
+                    <td className="p-5 text-[#686764] text-sm">
+                      <span className={event.isPayable ? 'font-semibold text-[#003D11]' : ''}>
+                        {formatEventPrice(event)}
+                      </span>
+                    </td>
                     <td className="p-5 text-[#686764] text-sm">
                       {event.date?.seconds ? new Date(event.date.seconds * 1000).toLocaleDateString('en-GB') : 'TBA'}
                     </td>
@@ -496,6 +522,32 @@ const Events = () => {
                   <div className="flex items-center gap-1 text-[11px] text-[#686764]">
                     <MapPin size={10} /> {event.location}
                   </div>
+
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span
+                      className={`text-[10px] font-bold px-2 py-1 rounded ${
+                        event.isPayable
+                          ? 'bg-[#003D11] text-white'
+                          : 'bg-green-50 text-green-700 border border-green-200'
+                      }`}
+                    >
+                      {formatEventPrice(event)}
+                    </span>
+                  </div>
+
+                  {event.isPayable && (event.paymentDescription || (event.paymentBenefits || []).length > 0) && (
+                    <div className="mt-2 text-[11px] text-[#686764] space-y-1">
+                      {event.paymentDescription && (
+                        <p className="line-clamp-2">{event.paymentDescription}</p>
+                      )}
+
+                      {(event.paymentBenefits || []).slice(0, 2).map((benefit, index) => (
+                        <p key={`${event.id}-benefit-${index}`} className="line-clamp-1">
+                          • {benefit}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))
             ) : (
