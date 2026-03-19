@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { db, storage } from '@/firebase';
+import { db } from '@/firebase';
 import { collection, addDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -17,6 +16,11 @@ interface CreateEventModalProps {
     description?: string;
     link?: string;
     image?: string;
+    isPayable?: boolean;
+    price?: number | null;
+    currency?: string;
+    paymentDescription?: string;
+    paymentBenefits?: string[];
   } | null;
 }
 
@@ -31,6 +35,11 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [isPayable, setIsPayable] = useState(false);
+  const [price, setPrice] = useState('');
+  const [currency, setCurrency] = useState('NGN');
+  const [paymentDescription, setPaymentDescription] = useState('');
+  const [paymentBenefitsText, setPaymentBenefitsText] = useState('');
 
   // Populate form when editing an event
   useEffect(() => {
@@ -40,6 +49,11 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
       setDescription(eventToEdit.description || '');
       setLink(eventToEdit.link || '');
       setExistingImageUrl(eventToEdit.image || '');
+      setIsPayable(Boolean(eventToEdit.isPayable));
+      setPrice(eventToEdit.price != null ? String(eventToEdit.price) : '');
+      setCurrency(eventToEdit.currency || 'NGN');
+      setPaymentDescription(eventToEdit.paymentDescription || '');
+      setPaymentBenefitsText((eventToEdit.paymentBenefits || []).join('\n'));
       if (eventToEdit.date?.seconds) {
         const d = new Date(eventToEdit.date.seconds * 1000);
         setDate(d.toISOString().split('T')[0]); // yyyy-mm-dd format
@@ -63,6 +77,11 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
     setImageFile(null);
     setExistingImageUrl('');
     setError('');
+    setIsPayable(false);
+    setPrice('');
+    setCurrency('NGN');
+    setPaymentDescription('');
+    setPaymentBenefitsText('');
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,6 +115,14 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
       return;
     }
 
+    if (isPayable) {
+      const parsedPrice = Number(price);
+      if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+        setError('Please enter a valid price for a payable event.');
+        return;
+      }
+    }
+
     setLoading(true);
     setError('');
 
@@ -107,6 +134,12 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
       }
 
 
+      const parsedPrice = Number(price);
+      const paymentBenefits = paymentBenefitsText
+        .split('\n')
+        .map((item) => item.trim())
+        .filter(Boolean);
+
       const eventData: {
         title: string;
         location: string;
@@ -114,6 +147,11 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
         description: string;
         link: string;
         image: string;
+        isPayable: boolean;
+        price: number | null;
+        currency: string;
+        paymentDescription: string;
+        paymentBenefits: string[];
         updatedAt: Timestamp;
         createdAt?: Timestamp;
       } = {
@@ -123,6 +161,11 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
         description,
         link,
         image: imageUrl,
+        isPayable,
+        price: isPayable ? parsedPrice : null,
+        currency: isPayable ? currency : 'NGN',
+        paymentDescription: isPayable ? paymentDescription : '',
+        paymentBenefits: isPayable ? paymentBenefits : [],
         updatedAt: Timestamp.now(),
       };
 
@@ -260,6 +303,86 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
                 <img src={existingImageUrl} alt="Event" className="mt-2 max-h-32 rounded" />
               ) : null}
 
+            </div>
+
+            <div className="rounded-md border border-gray-200 p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold" htmlFor="isPayable">
+                  Payable Event
+                </label>
+                <input
+                  id="isPayable"
+                  type="checkbox"
+                  checked={isPayable}
+                  onChange={(e) => setIsPayable(e.target.checked)}
+                  className="h-4 w-4"
+                />
+              </div>
+
+              {isPayable && (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold mb-1" htmlFor="price">
+                        Amount <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        id="price"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="w-full border border-gray-300 rounded px-3 py-2"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        required={isPayable}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold mb-1" htmlFor="currency">
+                        Currency
+                      </label>
+                      <select
+                        id="currency"
+                        className="w-full border border-gray-300 rounded px-3 py-2"
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                      >
+                        <option value="NGN">NGN</option>
+                        <option value="USD">USD</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1" htmlFor="paymentDescription">
+                      What they get
+                    </label>
+                    <textarea
+                      id="paymentDescription"
+                      rows={2}
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      placeholder="Example: Full conference access, workshop pass, and community dinner"
+                      value={paymentDescription}
+                      onChange={(e) => setPaymentDescription(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1" htmlFor="paymentBenefits">
+                      Benefits (one per line)
+                    </label>
+                    <textarea
+                      id="paymentBenefits"
+                      rows={4}
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      placeholder={'VIP badge\nLunch included\nAccess to recordings'}
+                      value={paymentBenefitsText}
+                      onChange={(e) => setPaymentBenefitsText(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             <button
