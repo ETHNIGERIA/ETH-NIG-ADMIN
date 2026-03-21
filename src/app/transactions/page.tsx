@@ -32,6 +32,7 @@ type PaymentRecord = {
   id: string;
   eventTitle?: string;
   email?: string;
+  expectations?: string;
   amount?: number;
   currency?: string;
   status?: PaymentStatus;
@@ -421,6 +422,36 @@ const Transactions = () => {
   const selectedEventLabel =
     payableEvents.find((event) => event.id === selectedEventId)?.title || 'No payable event selected';
 
+  const selectedTransactionAuditJson = selectedTransaction
+    ? JSON.stringify(
+        {
+          id: selectedTransaction.id,
+          eventId: selectedTransaction.eventId || null,
+          eventTitle: selectedTransaction.eventTitle || null,
+          idempotencyKey: selectedTransaction.idempotencyKey || null,
+          status: selectedTransaction.status || null,
+          providerChannel: selectedTransaction.channel || null,
+          reference: selectedTransaction.reference || null,
+          amountMinor: selectedTransaction.amount ?? null,
+          currency: selectedTransaction.currency || null,
+          paidAt: selectedTransaction.paidAt || null,
+          createdAt: formatTimestamp(selectedTransaction.createdAt),
+          updatedAt: formatTimestamp(selectedTransaction.updatedAt),
+          customer: {
+            email: selectedTransaction.email || null,
+            fullName: selectedTransaction.fullName || null,
+            phone: selectedTransaction.phone || null,
+            organization: selectedTransaction.organization || null,
+            community: selectedTransaction.community || null,
+            expectations: selectedTransaction.expectations || null,
+          },
+          rawRecord: selectedTransaction,
+        },
+        null,
+        2
+      )
+    : '';
+
   return (
     <AdminLayout>
       <div className="max-w-7xl mx-auto space-y-6">
@@ -672,6 +703,12 @@ const Transactions = () => {
                     <p className="text-sm font-semibold text-gray-900 mt-1">{selectedTransaction.community || '-'}</p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">Expectations</p>
+                    <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">
+                      {selectedTransaction.expectations || '-'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
                     <p className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">Paid At</p>
                     <p className="text-sm font-semibold text-gray-900 mt-1">{formatTimestamp(selectedTransaction.paidAt)}</p>
                   </div>
@@ -683,6 +720,15 @@ const Transactions = () => {
                     <p className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">Updated</p>
                     <p className="text-sm font-semibold text-gray-900 mt-1">{formatTimestamp(selectedTransaction.updatedAt)}</p>
                   </div>
+
+                  <details className="bg-slate-900 rounded-lg p-3 text-slate-100">
+                    <summary className="cursor-pointer text-xs uppercase tracking-wide font-semibold text-slate-300">
+                      Audit Metadata (JSON)
+                    </summary>
+                    <pre className="mt-3 text-xs leading-relaxed whitespace-pre-wrap break-words">
+                      {selectedTransactionAuditJson}
+                    </pre>
+                  </details>
                 </div>
               </div>
             </aside>
