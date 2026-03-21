@@ -11,6 +11,7 @@ import {
   LogOut,
   Handshake,
   BadgeDollarSign, // Added icon for Sponsorships
+  CreditCard,
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -20,6 +21,7 @@ const navLinks = [
   { label: 'Community', icon: Users, path: '/community' },
   { label: 'Partnerships', icon: Handshake, path: '/partnership' }, 
   { label: 'Sponsorships', icon: BadgeDollarSign, path: '/sponsorships' },
+  { label: 'Transactions', icon: CreditCard, path: '/transactions' },
   { label: 'Blogs', icon: Newspaper, path: '/blogs' },
   { label: 'Career', icon: Briefcase, path: '/career' },
 ];
