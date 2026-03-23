@@ -13,6 +13,7 @@ interface CreateEventModalProps {
     title?: string;
     location?: string;
     date?: { seconds: number };
+    endDate?: { seconds: number };
     description?: string;
     link?: string;
     image?: string;
@@ -28,6 +29,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [description, setDescription] = useState('');
   const [link, setLink] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -60,6 +62,12 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
       } else {
         setDate('');
       }
+      if (eventToEdit.endDate?.seconds) {
+        const d = new Date(eventToEdit.endDate.seconds * 1000);
+        setEndDate(d.toISOString().split('T')[0]);
+      } else {
+        setEndDate('');
+      }
       setImageFile(null);
       setError('');
     } else {
@@ -72,6 +80,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
     setTitle('');
     setLocation('');
     setDate('');
+    setEndDate('');
     setDescription('');
     setLink('');
     setImageFile(null);
@@ -144,6 +153,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
         title: string;
         location: string;
         date: Timestamp;
+        endDate?: Timestamp;
         description: string;
         link: string;
         image: string;
@@ -168,6 +178,10 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
         paymentBenefits: isPayable ? paymentBenefits : [],
         updatedAt: Timestamp.now(),
       };
+
+      if (endDate) {
+        eventData.endDate = Timestamp.fromDate(new Date(endDate));
+      }
 
       if (eventToEdit?.id) {
         const eventRef = doc(db, 'events', eventToEdit.id);
@@ -259,6 +273,19 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold mb-1" htmlFor="endDate">
+                End Date (Optional)
+              </label>
+              <input
+                id="endDate"
+                type="date"
+                className="w-full border border-gray-300 rounded px-3 py-2"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
 

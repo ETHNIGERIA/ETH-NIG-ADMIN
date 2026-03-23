@@ -305,6 +305,7 @@ type EventType = {
   paymentDescription?: string;
   paymentBenefits?: string[];
   date?: { seconds: number; nanoseconds?: number } | any;
+  endDate?: { seconds: number; nanoseconds?: number } | any;
 };
 
 const formatEventPrice = (event: EventType) => {
