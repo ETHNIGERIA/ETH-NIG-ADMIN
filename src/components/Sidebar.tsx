@@ -12,6 +12,7 @@ import {
   Handshake,
   BadgeDollarSign, // Added icon for Sponsorships
   CreditCard,
+  ClipboardList,
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -22,6 +23,7 @@ const navLinks = [
   { label: 'Partnerships', icon: Handshake, path: '/partnership' }, 
   { label: 'Sponsorships', icon: BadgeDollarSign, path: '/sponsorships' },
   { label: 'Transactions', icon: CreditCard, path: '/transactions' },
+  { label: 'Registrations', icon: ClipboardList, path: '/registrations' },
   { label: 'Blogs', icon: Newspaper, path: '/blogs' },
   { label: 'Career', icon: Briefcase, path: '/career' },
 ];
