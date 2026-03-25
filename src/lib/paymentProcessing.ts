@@ -1,6 +1,6 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { getAdminDb } from '@/lib/firebaseAdmin';
-import { sendPaymentConfirmationMail } from '@/lib/mail';
+import { sendEventRegistrationConfirmationMail } from '@/lib/mail';
 import {
   normalizeCurrency,
   normalizeEmail,
@@ -107,6 +107,41 @@ const getEventDateForAcknowledgement = async (
   };
 
   return formatFirestoreDateToIso(event.date);
+};
+
+type EventEmailDetails = {
+  dateIso: string | null;
+  paymentDescription?: string;
+  paymentCtaUrl?: string;
+  image?: string;
+};
+
+const getEventEmailDetails = async (
+  db: FirebaseFirestore.Firestore,
+  eventId: string | undefined
+): Promise<EventEmailDetails> => {
+  if (!eventId) {
+    return { dateIso: null };
+  }
+
+  const eventSnap = await db.collection('events').doc(eventId).get();
+  if (!eventSnap.exists) {
+    return { dateIso: null };
+  }
+
+  const event = eventSnap.data() as {
+    date?: FirebaseFirestore.Timestamp | Date | { toDate?: () => Date; seconds?: number };
+    paymentDescription?: string;
+    link?: string;
+    image?: string;
+  };
+
+  return {
+    dateIso: formatFirestoreDateToIso(event.date),
+    paymentDescription: event.paymentDescription || '',
+    paymentCtaUrl: event.link || '',
+    image: event.image || '',
+  };
 };
 
 const claimEmailDispatch = async (paymentRef: FirebaseFirestore.DocumentReference) => {
@@ -365,22 +400,32 @@ export const finalizeSuccessfulPayment = async ({
   if (canSendEmail) {
     try {
       const paidAt = payload.data?.paid_at || new Date().toISOString();
-      const eventDate =
-        (await getEventDateForAcknowledgement(
-          context.db,
-          context.payment.eventId || context.attempt.eventId
-        )) || paidAt;
+      const eventDetails = await getEventEmailDetails(
+        context.db,
+        context.payment.eventId || context.attempt.eventId
+      );
+      const eventDate = eventDetails.dateIso || paidAt;
 
-      await sendPaymentConfirmationMail({
+      await sendEventRegistrationConfirmationMail({
         email: normalizeEmail(
           context.payment.email || context.attempt.email || payload.data?.customer?.email || ''
         ),
         fullName: context.payment.fullName || context.attempt.fullName || '',
+        eventId: context.payment.eventId || context.attempt.eventId || '',
         eventName: context.payment.eventTitle || context.attempt.eventTitle || 'Ethereum Nigeria Event',
+        registrationType: 'paid',
+        registrationDate: paidAt,
+        eventDate,
         amountPaid: context.expectedAmount / 100,
         currency: context.expectedCurrency,
-        paymentDate: paidAt,
-        eventDate,
+        ticketQuantity: 1,
+        paymentReference: context.reference,
+        customizations: {
+          introMessage: eventDetails.paymentDescription || undefined,
+          ctaText: eventDetails.paymentCtaUrl ? 'View Event Details' : undefined,
+          ctaUrl: eventDetails.paymentCtaUrl || undefined,
+          bannerImageUrl: eventDetails.image || undefined,
+        },
       });
 
       await context.paymentRef.set(

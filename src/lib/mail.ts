@@ -8,6 +8,27 @@ type SendPaymentConfirmationMailParams = {
   eventDate: string;
 };
 
+type SendEventRegistrationConfirmationMailParams = {
+  email: string;
+  fullName?: string;
+  eventId?: string;
+  eventName: string;
+  registrationType: 'free' | 'paid';
+  registrationDate: string;
+  eventDate: string;
+  amountPaid?: number;
+  currency?: string;
+  ticketQuantity?: number;
+  paymentReference?: string;
+  customizations?: {
+    introMessage?: string;
+    ctaText?: string;
+    ctaUrl?: string;
+    bannerImageUrl?: string;
+    extraNote?: string;
+  };
+};
+
 const formatMoney = (amount: number, currency: string) => {
   try {
     return new Intl.NumberFormat('en-NG', {
@@ -66,5 +87,58 @@ export const sendPaymentConfirmationMail = async ({
   if (!response.ok) {
     const body = await response.text();
     throw new Error(`Acknowledgement mail request failed: ${body}`);
+  }
+};
+
+export const sendEventRegistrationConfirmationMail = async ({
+  email,
+  fullName,
+  eventId,
+  eventName,
+  registrationType,
+  registrationDate,
+  eventDate,
+  amountPaid,
+  currency,
+  ticketQuantity,
+  paymentReference,
+  customizations,
+}: SendEventRegistrationConfirmationMailParams) => {
+  const mailBaseUrl = process.env.MAIL_BASE_URL;
+
+  if (!mailBaseUrl) {
+    throw new Error('MAIL_BASE_URL is missing');
+  }
+
+  const response = await fetch(
+    `${mailBaseUrl.replace(/\/$/, '')}/api/event/send-registration-confirmation`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        fullName: fullName || 'there',
+        eventId,
+        eventName,
+        registrationType,
+        registrationDate: formatHumanDate(registrationDate),
+        eventDate: formatHumanDate(eventDate),
+        amountPaid:
+          typeof amountPaid === 'number' && currency
+            ? formatMoney(amountPaid, currency)
+            : undefined,
+        currency,
+        ticketQuantity,
+        paymentReference,
+        customizations,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Event registration mail request failed: ${body}`);
   }
 };
