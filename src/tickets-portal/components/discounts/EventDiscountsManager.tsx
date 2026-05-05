@@ -70,81 +70,6 @@ export function EventDiscountsManager({
         flow ({eventName}).
       </p>
 
-      <section className="space-y-4">
-        <h2 className="text-[15px] font-semibold text-stone-900">Create discount</h2>
-        <ActionError state={cState} />
-        <form key={createKey} action={cAction} className="grid gap-4 rounded-lg border border-stone-200 bg-white p-5 shadow-sm sm:grid-cols-2">
-          <input type="hidden" name="eventId" value={eventId} />
-          <div>
-            <label className={labelClass} htmlFor="d-code">
-              Code
-            </label>
-            <input id="d-code" name="code" required className={fieldClass} placeholder="SUMMER26" />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="d-type">
-              Type
-            </label>
-            <select id="d-type" name="type" required className={fieldClass} defaultValue="percentage">
-              <option value="percentage">Percentage</option>
-              <option value="fixed">Fixed (minor units)</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="d-value">
-              Value
-            </label>
-            <input id="d-value" name="value" type="number" min={0} step={1} required className={fieldClass} />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="d-max">
-              Max uses (optional)
-            </label>
-            <input id="d-max" name="maxUses" type="number" min={0} step={1} className={fieldClass} />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="d-from">
-              Valid from
-            </label>
-            <input
-              id="d-from"
-              name="validFrom"
-              type="datetime-local"
-              required
-              defaultValue={defaultFrom()}
-              className={fieldClass}
-            />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="d-until">
-              Valid until
-            </label>
-            <input
-              id="d-until"
-              name="validUntil"
-              type="datetime-local"
-              required
-              defaultValue={defaultUntil()}
-              className={fieldClass}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="flex items-center gap-2 text-[14px] text-stone-700">
-              <input type="checkbox" name="isActive" defaultChecked className="rounded border-stone-300" />
-              Active
-            </label>
-          </div>
-          <div className="sm:col-span-2">
-            <button
-              type="submit"
-              className="rounded-md bg-stone-900 px-4 py-2.5 text-[14px] font-medium text-white hover:bg-stone-800"
-            >
-              Create discount
-            </button>
-          </div>
-        </form>
-      </section>
-
       <section className={wrap}>
         <table className="w-full min-w-[720px]">
           <thead>
@@ -202,6 +127,84 @@ export function EventDiscountsManager({
             )}
           </tbody>
         </table>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-[15px] font-semibold text-stone-900">Create discount</h2>
+        <ActionError state={cState} />
+        <form key={createKey} action={cAction} className="grid gap-4 rounded-lg border border-stone-200 bg-white p-5 shadow-sm sm:grid-cols-2">
+          <input type="hidden" name="eventId" value={eventId} />
+          <div>
+            <label className={labelClass} htmlFor="d-code">
+              Code
+            </label>
+            <input id="d-code" name="code" required className={fieldClass} placeholder="SUMMER26" />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="d-type">
+              Type
+            </label>
+            <select id="d-type" name="type" required className={fieldClass} defaultValue="percentage">
+              <option value="percentage">Percentage</option>
+              <option value="fixed">Fixed (NGN)</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="d-value">
+              Value
+            </label>
+            <input id="d-value" name="value" type="number" min={0} step={0.01} required className={fieldClass} />
+            <p className="mt-1 text-[12px] text-stone-500">
+              Percentage 0-100, or fixed amount in Naira
+            </p>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="d-max">
+              Max uses (optional)
+            </label>
+            <input id="d-max" name="maxUses" type="number" min={0} step={1} className={fieldClass} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="d-from">
+              Valid from
+            </label>
+            <input
+              id="d-from"
+              name="validFrom"
+              type="datetime-local"
+              required
+              defaultValue={defaultFrom()}
+              className={fieldClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="d-until">
+              Valid until
+            </label>
+            <input
+              id="d-until"
+              name="validUntil"
+              type="datetime-local"
+              required
+              defaultValue={defaultUntil()}
+              className={fieldClass}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="flex items-center gap-2 text-[14px] text-stone-700">
+              <input type="checkbox" name="isActive" defaultChecked className="rounded border-stone-300" />
+              Active
+            </label>
+          </div>
+          <div className="sm:col-span-2">
+            <button
+              type="submit"
+              className="rounded-md bg-stone-900 px-4 py-2.5 text-[14px] font-medium text-white hover:bg-stone-800"
+            >
+              Create discount
+            </button>
+          </div>
+        </form>
       </section>
     </div>
   );

@@ -17,6 +17,11 @@ function parseDatetimeLocal(raw: string): string | undefined {
   return d.toISOString();
 }
 
+function toMinorUnitsForFixed(value: number, type: AdminDiscountType) {
+  if (type !== 'fixed') return value;
+  return Math.round(value * 100);
+}
+
 export async function createDiscountAction(
   _prev: DiscountActionState,
   formData: FormData,
@@ -51,7 +56,7 @@ export async function createDiscountAction(
   const body: Record<string, unknown> = {
     code,
     type,
-    value,
+    value: toMinorUnitsForFixed(value, type),
     validFrom,
     validUntil,
     isActive,

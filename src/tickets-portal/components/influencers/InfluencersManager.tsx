@@ -55,39 +55,6 @@ export function InfluencersManager({ influencers }: { influencers: AdminInfluenc
 
   return (
     <div className="space-y-10">
-      <section className="space-y-4">
-        <h2 className="text-[15px] font-semibold text-stone-900">Add influencer</h2>
-        <ActionError state={cState} />
-        <form key={createKey} action={cAction} className="grid gap-4 rounded-lg border border-stone-200 bg-white p-5 shadow-sm sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className={labelClass} htmlFor="inf-name">
-              Display name
-            </label>
-            <input id="inf-name" name="displayName" required className={fieldClass} />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="inf-email">
-              Email (optional)
-            </label>
-            <input id="inf-email" name="email" type="email" className={fieldClass} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={labelClass} htmlFor="inf-notes">
-              Notes (optional)
-            </label>
-            <textarea id="inf-notes" name="notes" rows={2} className={fieldClass} />
-          </div>
-          <div className="sm:col-span-2">
-            <button
-              type="submit"
-              className="rounded-md bg-stone-900 px-4 py-2.5 text-[14px] font-medium text-white hover:bg-stone-800"
-            >
-              Create
-            </button>
-          </div>
-        </form>
-      </section>
-
       {editing ? (
         <section className="space-y-4 rounded-lg border border-stone-300 bg-stone-50/80 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -185,6 +152,39 @@ export function InfluencersManager({ influencers }: { influencers: AdminInfluenc
             )}
           </tbody>
         </table>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-[15px] font-semibold text-stone-900">Add influencer</h2>
+        <ActionError state={cState} />
+        <form key={createKey} action={cAction} className="grid gap-4 rounded-lg border border-stone-200 bg-white p-5 shadow-sm sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className={labelClass} htmlFor="inf-name">
+              Display name
+            </label>
+            <input id="inf-name" name="displayName" required className={fieldClass} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="inf-email">
+              Email (optional)
+            </label>
+            <input id="inf-email" name="email" type="email" className={fieldClass} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelClass} htmlFor="inf-notes">
+              Notes (optional)
+            </label>
+            <textarea id="inf-notes" name="notes" rows={2} className={fieldClass} />
+          </div>
+          <div className="sm:col-span-2">
+            <button
+              type="submit"
+              className="rounded-md bg-stone-900 px-4 py-2.5 text-[14px] font-medium text-white hover:bg-stone-800"
+            >
+              Create
+            </button>
+          </div>
+        </form>
       </section>
     </div>
   );

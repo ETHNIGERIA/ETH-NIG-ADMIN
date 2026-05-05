@@ -55,37 +55,6 @@ export function CommunitiesManager({ communities }: { communities: AdminCommunit
 
   return (
     <div className="space-y-10">
-      <section className="space-y-4">
-        <h2 className="text-[15px] font-semibold text-stone-900">Add community</h2>
-        <ActionError state={cState} />
-        <form key={createKey} action={cAction} className="grid gap-4 rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
-          <div>
-            <label className={labelClass} htmlFor="com-name">
-              Name
-            </label>
-            <input id="com-name" name="name" required className={fieldClass} />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="com-desc">
-              Description (optional)
-            </label>
-            <textarea id="com-desc" name="description" rows={2} className={fieldClass} />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="com-region">
-              Region (optional)
-            </label>
-            <input id="com-region" name="region" className={fieldClass} />
-          </div>
-          <button
-            type="submit"
-            className="w-fit rounded-md bg-stone-900 px-4 py-2.5 text-[14px] font-medium text-white hover:bg-stone-800"
-          >
-            Create
-          </button>
-        </form>
-      </section>
-
       {editing ? (
         <section className="space-y-4 rounded-lg border border-stone-300 bg-stone-50/80 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -181,6 +150,37 @@ export function CommunitiesManager({ communities }: { communities: AdminCommunit
             )}
           </tbody>
         </table>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-[15px] font-semibold text-stone-900">Add community</h2>
+        <ActionError state={cState} />
+        <form key={createKey} action={cAction} className="grid gap-4 rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
+          <div>
+            <label className={labelClass} htmlFor="com-name">
+              Name
+            </label>
+            <input id="com-name" name="name" required className={fieldClass} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="com-desc">
+              Description (optional)
+            </label>
+            <textarea id="com-desc" name="description" rows={2} className={fieldClass} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="com-region">
+              Region (optional)
+            </label>
+            <input id="com-region" name="region" className={fieldClass} />
+          </div>
+          <button
+            type="submit"
+            className="w-fit rounded-md bg-stone-900 px-4 py-2.5 text-[14px] font-medium text-white hover:bg-stone-800"
+          >
+            Create
+          </button>
+        </form>
       </section>
     </div>
   );

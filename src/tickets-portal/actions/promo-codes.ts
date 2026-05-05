@@ -27,6 +27,14 @@ function parseScope(formData: FormData): string | undefined {
   return raw === '' ? undefined : raw;
 }
 
+function toMinorUnitsForFixed(
+  value: number,
+  discountType: PromoCodeDiscountType,
+) {
+  if (discountType !== 'fixed') return value;
+  return Math.round(value * 100);
+}
+
 export async function createPromoCodeAction(
   _prev: PromoCodeActionState,
   formData: FormData,
@@ -41,8 +49,7 @@ export async function createPromoCodeAction(
   const maxUsesRaw = String(formData.get('maxUses') ?? '').trim();
   const isActive = formData.get('isActive') === 'on';
 
-  let discountType = String(formData.get('discountType') ?? '').trim() as PromoCodeDiscountType;
-  if (ownerKind === 'community') discountType = 'fixed';
+  const discountType = String(formData.get('discountType') ?? '').trim() as PromoCodeDiscountType;
 
   if (!ownerId || (ownerKind !== 'influencer' && ownerKind !== 'community')) {
     return { error: 'Missing owner context.' };
@@ -72,7 +79,7 @@ export async function createPromoCodeAction(
   const body: Record<string, unknown> = {
     code,
     discountType,
-    discountValue,
+    discountValue: toMinorUnitsForFixed(discountValue, discountType),
     isActive,
   };
 
@@ -115,8 +122,7 @@ export async function updatePromoCodeAction(
   const maxUsesRaw = String(formData.get('maxUses') ?? '').trim();
   const isActive = formData.get('isActive') === 'on';
 
-  let discountType = String(formData.get('discountType') ?? '').trim() as PromoCodeDiscountType;
-  if (ownerKind === 'community') discountType = 'fixed';
+  const discountType = String(formData.get('discountType') ?? '').trim() as PromoCodeDiscountType;
 
   if (!promoId) return { error: 'Missing promo id.' };
   if (!ownerId || (ownerKind !== 'influencer' && ownerKind !== 'community')) {
@@ -143,7 +149,7 @@ export async function updatePromoCodeAction(
   const body: Record<string, unknown> = {
     code,
     discountType,
-    discountValue,
+    discountValue: toMinorUnitsForFixed(discountValue, discountType),
     isActive,
   };
 
