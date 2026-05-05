@@ -4,13 +4,25 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Calendar, LayoutDashboard, Menu, Users, X } from 'lucide-react';
+import {
+  Calendar,
+  LayoutDashboard,
+  Megaphone,
+  Menu,
+  Shield,
+  Users,
+  UsersRound,
+  X,
+} from 'lucide-react';
 import clsx from 'clsx';
 
 const NAV = [
   { href: '/tickets-command', label: 'Overview', icon: LayoutDashboard },
   { href: '/tickets-command/events', label: 'Events', icon: Calendar },
+  { href: '/tickets-command/influencers', label: 'Influencers', icon: Megaphone },
+  { href: '/tickets-command/communities', label: 'Communities', icon: UsersRound },
   { href: '/tickets-command/users', label: 'Users', icon: Users },
+  { href: '/tickets-command/admins', label: 'Admins', icon: Shield },
 ] as const;
 
 export function TicketsCommandLayout({ children }: { children: ReactNode }) {

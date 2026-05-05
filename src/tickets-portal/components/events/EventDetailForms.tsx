@@ -113,6 +113,13 @@ function EventPageNav({ eventId }: { eventId: string }) {
       >
         Registrations
       </Link>
+      <span className="mx-2 h-3 w-px bg-stone-300" aria-hidden />
+      <Link
+        href={`/tickets-command/events/${eventId}/discounts`}
+        className="font-medium text-stone-800 underline-offset-4 hover:underline"
+      >
+        Discounts
+      </Link>
     </nav>
   );
 }
