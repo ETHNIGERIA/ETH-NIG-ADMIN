@@ -47,6 +47,7 @@ export type AdminOverviewResponse = {
   };
   recent: {
     events: Array<{
+      _id?: unknown;
       slug: string;
       name: string;
       status: string;
@@ -64,7 +65,9 @@ export type AdminOverviewResponse = {
       capacity?: number;
     }>;
     registrations: Array<{
-      eventId: { slug: string; name: string; status: string };
+      /** Present on API payloads (Mongo `_id` serialized). */
+      _id?: unknown;
+      eventId: { _id?: unknown; slug: string; name: string; status: string };
       tierId: { name: string; priceMinor: number; status: string };
       email: string;
       name?: string;
@@ -74,8 +77,17 @@ export type AdminOverviewResponse = {
       createdAt?: string;
     }>;
     transactions: Array<{
-      eventId: { slug: string; name: string; status: string };
+      _id?: unknown;
+      eventId: { _id?: unknown; slug: string; name: string; status: string };
       tierId: { name: string; priceMinor: number; status: string };
+      registrationId?: {
+        _id?: unknown;
+        email: string;
+        name?: string;
+        quantity: number;
+        status: string;
+        finalAmount?: number;
+      } | null;
       amountMinor: number;
       currency: string;
       providerCode: string;

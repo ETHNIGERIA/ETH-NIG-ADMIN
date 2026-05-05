@@ -1,7 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
-import { TICKETS_PORTAL_BASE_PATH } from '@/tickets-portal/auth/constants';
+import {
+  TICKETS_FORGOT_PASSWORD_PATH,
+  TICKETS_PORTAL_BASE_PATH,
+} from '@/tickets-portal/auth/constants';
 
 function safeNextPath(path: string | undefined): string {
   if (path && path.startsWith(TICKETS_PORTAL_BASE_PATH) && !path.startsWith('//')) {
@@ -104,6 +108,13 @@ export function TicketsLoginForm({ nextPath }: Props) {
               {loading ? 'Signing in…' : 'Continue'}
             </button>
           </form>
+
+          <div className="mt-5 flex items-center justify-between gap-4 text-[13px]">
+            <Link href={TICKETS_FORGOT_PASSWORD_PATH} className="text-stone-500 hover:text-stone-900">
+              Forgot password?
+            </Link>
+            <span className="text-stone-400">Separate admin session</span>
+          </div>
         </div>
       </div>
     </div>

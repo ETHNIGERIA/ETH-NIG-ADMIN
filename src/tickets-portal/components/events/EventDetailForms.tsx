@@ -106,6 +106,13 @@ function EventPageNav({ eventId }: { eventId: string }) {
       >
         Manage fields
       </Link>
+      <span className="mx-2 h-3 w-px bg-stone-300" aria-hidden />
+      <Link
+        href={`/tickets-command/events/${eventId}/registrations`}
+        className="font-medium text-stone-800 underline-offset-4 hover:underline"
+      >
+        Registrations
+      </Link>
     </nav>
   );
 }

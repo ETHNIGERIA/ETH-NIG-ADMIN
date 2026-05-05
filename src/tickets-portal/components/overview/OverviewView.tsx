@@ -1,5 +1,18 @@
+import Link from 'next/link';
 import type { AdminOverviewResponse } from '@/tickets-portal/types/admin-overview';
 import { formatMinorToNgn } from '@/tickets-portal/lib/format-money';
+import {
+  overviewEventHref,
+  overviewPaymentHref,
+  overviewRegistrationHref,
+} from '@/tickets-portal/lib/overview-links';
+
+function registrationDetailHref(
+  r: AdminOverviewResponse['recent']['registrations'][number],
+): string | null {
+  if (r._id == null) return null;
+  return overviewRegistrationHref(r.eventId, r);
+}
 
 function fmtDate(iso?: string) {
   if (!iso) return '—';
@@ -112,17 +125,26 @@ export function OverviewView({ data }: { data: AdminOverviewResponse }) {
                     </td>
                   </tr>
                 ) : (
-                  recent.events.map((ev) => (
+                  recent.events.map((ev) => {
+                    const evHref = overviewEventHref(ev);
+                    return (
                     <tr key={ev.slug + ev.startsAt} className={`border-b border-stone-100 last:border-0 ${rowHover}`}>
                       <td className={`${td} max-w-[200px] truncate font-medium text-stone-900`}>
-                        {ev.name}
+                        {evHref ? (
+                          <Link href={evHref} className="hover:underline">
+                            {ev.name}
+                          </Link>
+                        ) : (
+                          ev.name
+                        )}
                       </td>
                       <td className={`${td} capitalize`}>{ev.status}</td>
                       <td className={`${td} hidden tabular-nums sm:table-cell`}>
                         {ev.registrationCount}
                       </td>
                     </tr>
-                  ))
+                  );
+                  })
                 )}
               </tbody>
             </table>
@@ -138,6 +160,8 @@ export function OverviewView({ data }: { data: AdminOverviewResponse }) {
               <thead>
                 <tr className="border-b border-stone-100">
                   <th className={th}>Amount</th>
+                  <th className={th}>Event</th>
+                  <th className={`${th} hidden sm:table-cell`}>Registration</th>
                   <th className={th}>Status</th>
                   <th className={`${th} hidden md:table-cell`}>When</th>
                 </tr>
@@ -145,25 +169,54 @@ export function OverviewView({ data }: { data: AdminOverviewResponse }) {
               <tbody>
                 {recent.transactions.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className={`${td} py-10 text-center text-stone-400`}>
+                    <td colSpan={5} className={`${td} py-10 text-center text-stone-400`}>
                       No payments yet
                     </td>
                   </tr>
                 ) : (
-                  recent.transactions.map((tx, i) => (
-                    <tr
-                      key={`${tx.createdAt ?? i}-${i}`}
-                      className={`border-b border-stone-100 last:border-0 ${rowHover}`}
-                    >
-                      <td className={`${td} tabular-nums font-medium text-stone-900`}>
-                        {formatMinorToNgn(tx.amountMinor)}
-                      </td>
-                      <td className={`${td} capitalize`}>{tx.status}</td>
-                      <td className={`${td} hidden text-[13px] text-stone-500 md:table-cell`}>
-                        {fmtDate(tx.createdAt)}
-                      </td>
-                    </tr>
-                  ))
+                  recent.transactions.map((tx, i) => {
+                    const payHref = overviewPaymentHref(tx._id);
+                    const evHref = overviewEventHref(tx.eventId);
+                    const regHref = overviewRegistrationHref(tx.eventId, tx.registrationId ?? null);
+                    return (
+                      <tr
+                        key={`${tx.createdAt ?? i}-${i}`}
+                        className={`border-b border-stone-100 last:border-0 ${rowHover}`}
+                      >
+                        <td className={`${td} tabular-nums font-medium text-stone-900`}>
+                          {payHref ? (
+                            <Link href={payHref} className="hover:underline">
+                              {formatMinorToNgn(tx.amountMinor)}
+                            </Link>
+                          ) : (
+                            formatMinorToNgn(tx.amountMinor)
+                          )}
+                        </td>
+                        <td className={`${td} max-w-[160px] truncate`}>
+                          {evHref ? (
+                            <Link href={evHref} className="hover:underline">
+                              {tx.eventId.name}
+                            </Link>
+                          ) : (
+                            tx.eventId.name
+                          )}
+                        </td>
+                        <td className={`${td} hidden max-w-[140px] truncate sm:table-cell`}>
+                          {regHref ? (
+                            <Link href={regHref} className="text-[13px] hover:underline">
+                              Open
+                            </Link>
+                          ) : (
+                            <span className="text-stone-400">—</span>
+                          )}
+                        </td>
+                        <td className={`${td} capitalize`}>{tx.status}</td>
+                        <td className={`${td} hidden text-[13px] text-stone-500 md:table-cell`}>
+                          {fmtDate(tx.createdAt)}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -183,29 +236,62 @@ export function OverviewView({ data }: { data: AdminOverviewResponse }) {
                 <th className={th}>Event</th>
                 <th className={th}>Tier</th>
                 <th className={th}>Status</th>
+                <th className={`${th} text-right`}>
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {recent.registrations.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className={`${td} py-10 text-center text-stone-400`}>
+                  <td colSpan={5} className={`${td} py-10 text-center text-stone-400`}>
                     No registrations yet
                   </td>
                 </tr>
               ) : (
-                recent.registrations.map((r, i) => (
-                  <tr
-                    key={`${r.email}-${i}`}
-                    className={`border-b border-stone-100 last:border-0 ${rowHover}`}
-                  >
-                    <td className={`${td} max-w-[160px] truncate font-medium text-stone-900`}>
-                      {r.email}
-                    </td>
-                    <td className={`${td} max-w-[140px] truncate`}>{r.eventId.name}</td>
-                    <td className={`${td} max-w-[120px] truncate`}>{r.tierId.name}</td>
-                    <td className={`${td} capitalize`}>{r.status}</td>
-                  </tr>
-                ))
+                recent.registrations.map((r, i) => {
+                  const href = registrationDetailHref(r);
+                  const evHref = overviewEventHref(r.eventId);
+                  return (
+                    <tr
+                      key={href ?? `${r.email}-${i}`}
+                      className={`border-b border-stone-100 last:border-0 ${rowHover}`}
+                    >
+                      <td className={`${td} max-w-[160px] truncate font-medium text-stone-900`}>
+                        {href ? (
+                          <Link href={href} className="hover:underline">
+                            {r.email}
+                          </Link>
+                        ) : (
+                          r.email
+                        )}
+                      </td>
+                      <td className={`${td} max-w-[140px] truncate`}>
+                        {evHref ? (
+                          <Link href={evHref} className="hover:underline">
+                            {r.eventId.name}
+                          </Link>
+                        ) : (
+                          r.eventId.name
+                        )}
+                      </td>
+                      <td className={`${td} max-w-[120px] truncate`}>{r.tierId.name}</td>
+                      <td className={`${td} capitalize`}>{r.status}</td>
+                      <td className={`${td} whitespace-nowrap text-right`}>
+                        {href ? (
+                          <Link
+                            href={href}
+                            className="text-[13px] font-medium text-stone-800 underline-offset-4 hover:underline"
+                          >
+                            View
+                          </Link>
+                        ) : (
+                          <span className="text-[13px] text-stone-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
