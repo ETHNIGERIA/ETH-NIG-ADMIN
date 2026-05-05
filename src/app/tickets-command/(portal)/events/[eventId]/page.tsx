@@ -3,8 +3,10 @@ import { notFound } from 'next/navigation';
 import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
 import type { AdminEvent, Paginated } from '@/tickets-portal/types/admin-events';
 import type { AdminTicketTier } from '@/tickets-portal/types/admin-tiers';
+import type { AdminFormField } from '@/tickets-portal/types/admin-form-fields';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 import { EventDetailForms } from '@/tickets-portal/components/events/EventDetailForms';
+import { fetchAllEventFormFields } from '@/tickets-portal/data/event-form-fields-read';
 
 export default async function EventDetailPage({
   params,
@@ -33,6 +35,19 @@ export default async function EventDetailPage({
     tiers = [];
   }
 
+  let formFields: AdminFormField[] = [];
+  let formFieldsLoadError: string | null = null;
+  try {
+    const rawFields = await fetchAllEventFormFields(id);
+    formFields = rawFields.map((f) => ({
+      ...f,
+      _id: normalizeDocumentId(f._id),
+      eventId: normalizeDocumentId(f.eventId),
+    }));
+  } catch (e) {
+    formFieldsLoadError = e instanceof Error ? e.message : 'Could not load registration fields.';
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -44,7 +59,13 @@ export default async function EventDetailPage({
         </Link>
         <h1 className="mt-4 text-[28px] font-semibold tracking-tight text-stone-900">{event.name}</h1>
       </div>
-      <EventDetailForms event={event} eventId={id} tiers={tiers} />
+      <EventDetailForms
+        event={event}
+        eventId={id}
+        tiers={tiers}
+        formFields={formFields}
+        formFieldsLoadError={formFieldsLoadError}
+      />
     </div>
   );
 }

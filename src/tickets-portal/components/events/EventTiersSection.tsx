@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useEffect, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import {
   createTierAction,
   deleteTierAction,
@@ -470,13 +471,16 @@ export function EventTiersSection({
             Products shown at checkout. Early bird rules are enforced by the API when selling tickets.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowAddPanel(true)}
-          className="shrink-0 rounded-md border border-stone-300 bg-white px-3 py-2 text-[14px] font-medium text-stone-800 hover:bg-stone-50"
-        >
-          {count === 0 ? 'Add tier' : 'Add another tier'}
-        </button>
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+         
+          <button
+            type="button"
+            onClick={() => setShowAddPanel(true)}
+            className="shrink-0 rounded-md border border-stone-300 bg-white px-3 py-2 text-[14px] font-medium text-stone-800 hover:bg-stone-50"
+          >
+            {count === 0 ? 'Add tier' : 'Add another tier'}
+          </button>
+        </div>
       </div>
 
       <TierSlideout open={showAddPanel} title="New tier" onClose={() => setShowAddPanel(false)}>
