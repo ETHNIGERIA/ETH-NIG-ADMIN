@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+/* Open-state chevron for <details> hints (Tailwind open:[&_svg] breaks CSS parse in v4) */
+.integration-hint-details summary svg {
+  transition: transform 0.2s ease;
+}
+.integration-hint-details[open] summary svg {
+  transform: rotate(180deg);
+}

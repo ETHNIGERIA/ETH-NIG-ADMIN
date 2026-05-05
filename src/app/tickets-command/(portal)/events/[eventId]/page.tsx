@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
-import type { AdminEvent } from '@/tickets-portal/types/admin-events';
+import type { AdminEvent, Paginated } from '@/tickets-portal/types/admin-events';
+import type { AdminTicketTier } from '@/tickets-portal/types/admin-tiers';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 import { EventDetailForms } from '@/tickets-portal/components/events/EventDetailForms';
 
@@ -22,6 +23,16 @@ export default async function EventDetailPage({
   const id = normalizeDocumentId(raw._id);
   const event: AdminEvent = { ...raw, _id: id };
 
+  let tiers: AdminTicketTier[] = [];
+  try {
+    const p = await ticketsApiGet<Paginated<AdminTicketTier>>(
+      `/admin/events/${id}/tiers?page=1&limit=100`,
+    );
+    tiers = p.data.map((t) => ({ ...t, _id: normalizeDocumentId(t._id) }));
+  } catch {
+    tiers = [];
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -33,7 +44,7 @@ export default async function EventDetailPage({
         </Link>
         <h1 className="mt-4 text-[28px] font-semibold tracking-tight text-stone-900">{event.name}</h1>
       </div>
-      <EventDetailForms event={event} eventId={id} />
+      <EventDetailForms event={event} eventId={id} tiers={tiers} />
     </div>
   );
 }

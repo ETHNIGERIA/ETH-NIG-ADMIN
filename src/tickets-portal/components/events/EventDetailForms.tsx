@@ -10,6 +10,9 @@ import {
 } from '@/tickets-portal/actions/events';
 import type { AdminEvent, EventStatus } from '@/tickets-portal/types/admin-events';
 import { toDatetimeLocalValue } from '@/tickets-portal/lib/datetime-local';
+import { DetailIntegrationHint } from '@/tickets-portal/components/events/IntegrationHintCollapsible';
+import { EventTiersSection } from '@/tickets-portal/components/events/EventTiersSection';
+import type { AdminTicketTier } from '@/tickets-portal/types/admin-tiers';
 
 const fieldClass =
   'w-full rounded-md border border-stone-200 bg-white px-3 py-2.5 text-[15px] text-stone-900 outline-none focus:border-stone-300 focus:ring-2 focus:ring-stone-900/10';
@@ -28,18 +31,38 @@ function StatusBadge({ status }: { status: EventStatus }) {
   );
 }
 
-export function EventDetailForms({ event, eventId }: { event: AdminEvent; eventId: string }) {
+export function EventDetailForms({
+  event,
+  eventId,
+  tiers,
+}: {
+  event: AdminEvent;
+  eventId: string;
+  tiers: AdminTicketTier[];
+}) {
   const [updateState, updateAction, updatePending] = useActionState(updateEventAction, undefined as ActionState);
   const [deleteState, deleteAction, deletePending] = useActionState(deleteEventAction, undefined as ActionState);
   const [statusState, statusAction, statusPending] = useActionState(setEventStatusAction, undefined as ActionState);
 
   const originsText = (event.allowedOrigins ?? []).join('\n');
 
+  const tierCount = tiers.length;
+
   return (
     <div className="space-y-10">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <span className="text-[13px] text-stone-500">Status</span>
         <StatusBadge status={event.status} />
+        <span className="text-[13px] text-stone-400" aria-hidden>
+          ·
+        </span>
+        <span className="text-[13px] text-stone-600">
+          {tierCount === 0
+            ? 'No ticket tiers yet'
+            : tierCount === 1
+              ? '1 ticket tier'
+              : `${tierCount} ticket tiers`}
+        </span>
       </div>
 
       {statusState?.error ? (
@@ -68,6 +91,7 @@ export function EventDetailForms({ event, eventId }: { event: AdminEvent; eventI
       <div className="border-t border-stone-100 pt-8">
         <h2 className="text-[13px] font-medium uppercase tracking-wide text-stone-400">Details</h2>
         <p className="mt-1 font-mono text-[14px] text-stone-600">{event.slug}</p>
+        <DetailIntegrationHint />
 
         {updateState?.error ? (
           <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-[14px] text-red-800">
@@ -142,23 +166,30 @@ export function EventDetailForms({ event, eventId }: { event: AdminEvent; eventI
         </form>
       </div>
 
-      <div className="border-t border-stone-200 pt-8">
-        {deleteState?.error ? (
-          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-[14px] text-red-800">
-            {deleteState.error}
-          </div>
-        ) : null}
-        <form action={deleteAction} className="flex flex-wrap items-end gap-4">
-          <input type="hidden" name="eventId" value={eventId} />
-          <button
-            type="submit"
-            disabled={deletePending}
-            className="rounded-md border border-red-200 bg-white px-4 py-2.5 text-[14px] text-red-700 hover:bg-red-50 disabled:opacity-50"
-          >
-            {deletePending ? 'Deleting…' : 'Delete event'}
-          </button>
-          <p className="text-[13px] text-stone-500">Soft-deletes the event in the API.</p>
-        </form>
+      <div className="border-t border-stone-100 pt-10">
+        <EventTiersSection eventId={eventId} initialTiers={tiers} />
+      </div>
+
+      <div className="border-t border-stone-200 pt-10">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-red-800/80">Danger zone</p>
+        <div className="rounded-lg border-2 border-red-400 bg-red-50/50 px-4 py-4">
+          {deleteState?.error ? (
+            <div className="mb-3 rounded-md border border-red-200 bg-white px-3 py-2 text-[14px] text-red-800">
+              {deleteState.error}
+            </div>
+          ) : null}
+          <p className="text-[13px] text-red-900/90">Permanently soft-deletes this event in the API.</p>
+          <form action={deleteAction} className="mt-4">
+            <input type="hidden" name="eventId" value={eventId} />
+            <button
+              type="submit"
+              disabled={deletePending}
+              className="rounded-md border border-red-500 bg-white px-4 py-2 text-[14px] font-medium text-red-800 hover:bg-red-100/80 disabled:opacity-50"
+            >
+              {deletePending ? 'Deleting…' : 'Delete event'}
+            </button>
+          </form>
+        </div>
         <div className="mt-6">
           <Link href="/tickets-command/events" className="text-[14px] text-stone-600 hover:text-stone-900">
             ← All events
