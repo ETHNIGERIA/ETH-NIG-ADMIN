@@ -8,6 +8,7 @@ import {
 } from '@/tickets-portal/actions/form-fields';
 import type { ActionState } from '@/tickets-portal/actions/events';
 import type { AdminFormField, FormFieldType } from '@/tickets-portal/types/admin-form-fields';
+import type { AdminTicketTier } from '@/tickets-portal/types/admin-tiers';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 import {
   getRegistrationFieldPreset,
@@ -26,6 +27,41 @@ import {
 const fieldClass =
   'w-full rounded-md border border-stone-200 bg-white px-3 py-2.5 text-[15px] text-stone-900 outline-none focus:border-stone-300 focus:ring-2 focus:ring-stone-900/10';
 const labelClass = 'mb-1.5 block text-[13px] font-medium text-stone-700';
+
+function TierSelect({
+  tiers,
+  value,
+  onChange,
+  id,
+  name,
+}: {
+  tiers: AdminTicketTier[];
+  value: string | null | undefined;
+  onChange?: (v: string | null) => void;
+  id?: string;
+  name?: string;
+}) {
+  if (tiers.length === 0) return null;
+  return (
+    <div>
+      <label className={labelClass} htmlFor={id}>
+        Applies to tier <span className="font-normal text-stone-400">(leave blank for all tiers)</span>
+      </label>
+      <select
+        id={id}
+        name={name}
+        value={value ?? ''}
+        onChange={onChange ? (e) => onChange(e.target.value || null) : undefined}
+        className={fieldClass}
+      >
+        <option value="">All tiers (global)</option>
+        {tiers.map((t) => (
+          <option key={t._id} value={t._id}>{t.name}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 const TYPE_OPTIONS: { value: FormFieldType; label: string }[] = [
   { value: 'text', label: 'Text' },
@@ -63,11 +99,15 @@ function PresetPicker({
   onPick,
   savedFields,
   draftPresetIds,
+  tiers,
 }: {
-  onPick: (preset: RegistrationFieldPreset) => void;
+  onPick: (preset: RegistrationFieldPreset, tierId: string | null) => void;
   savedFields: AdminFormField[];
   draftPresetIds: Set<string>;
+  tiers: AdminTicketTier[];
 }) {
+  const [tierId, setTierId] = useState<string | null>(null);
+
   return (
     <div className="border-b border-stone-200 pb-8">
       <h2 className="text-[13px] font-medium uppercase tracking-wide text-stone-400">Suggested fields</h2>
@@ -75,6 +115,10 @@ function PresetPicker({
         Tap to add to your draft (nothing is saved until you confirm below). Fields already on this event or already in
         your draft are disabled.
       </p>
+
+      <div className="mt-4 max-w-sm">
+        <TierSelect tiers={tiers} value={tierId} onChange={setTierId} id="preset-picker-tier" />
+      </div>
 
       <div className="mt-6 space-y-8">
         {REGISTRATION_FIELD_PRESET_CATEGORIES.map((cat) => (
@@ -97,7 +141,7 @@ function PresetPicker({
                     <button
                       type="button"
                       disabled={disabled}
-                      onClick={() => onPick(preset)}
+                      onClick={() => onPick(preset, tierId)}
                       title={
                         disabled
                           ? reason
@@ -127,28 +171,24 @@ function PresetPicker({
 
 type CustomDraftInput = Omit<Extract<ClientDraftRow, { kind: 'custom' }>, 'id'>;
 
-function AddToDraftForm({ onAdd }: { onAdd: (row: CustomDraftInput) => void }) {
+function AddToDraftForm({ onAdd, tiers }: { onAdd: (row: CustomDraftInput) => void; tiers: AdminTicketTier[] }) {
   const [label, setLabel] = useState('');
   const [type, setType] = useState<FormFieldType>('text');
   const [required, setRequired] = useState(false);
   const [optionsText, setOptionsText] = useState('');
+  const [tierId, setTierId] = useState<string | null>(null);
 
   const submit = useCallback(() => {
     const t = label.trim();
     if (!t) return;
     const options = type === 'select' ? parseOptionsText(optionsText) : [];
-    onAdd({
-      kind: 'custom',
-      label: t,
-      type,
-      required,
-      options,
-    });
+    onAdd({ kind: 'custom', label: t, type, required, options, tierId });
     setLabel('');
     setType('text');
     setRequired(false);
     setOptionsText('');
-  }, [label, type, required, optionsText, onAdd]);
+    setTierId(null);
+  }, [label, type, required, optionsText, tierId, onAdd]);
 
   return (
     <div className="border-b border-stone-200 pb-6">
@@ -220,6 +260,7 @@ function AddToDraftForm({ onAdd }: { onAdd: (row: CustomDraftInput) => void }) {
             />
           </div>
         ) : null}
+        <TierSelect tiers={tiers} value={tierId} onChange={setTierId} id="draft-custom-tier" />
         <button
           type="button"
           onClick={submit}
@@ -240,6 +281,7 @@ function DraftPreview({
   keyByRowId,
   onUpdatePresetOptions,
   onUpdateCustomOptions,
+  tiers,
 }: {
   eventId: string;
   draft: ClientDraftRow[];
@@ -248,6 +290,7 @@ function DraftPreview({
   keyByRowId: Map<string, string>;
   onUpdatePresetOptions: (rowId: string, options: string[]) => void;
   onUpdateCustomOptions: (rowId: string, options: string[]) => void;
+  tiers: AdminTicketTier[];
 }) {
   const [state, action, pending] = useActionState(commitRegistrationDraftAction, undefined as ActionState);
 
@@ -297,6 +340,9 @@ function DraftPreview({
                       {meta.type === 'select' && meta.optionsCount > 0
                         ? ` · ${meta.optionsCount} choices`
                         : null}
+                      {row.tierId
+                        ? ` · ${tiers.find((t) => t._id === row.tierId)?.name ?? 'specific tier'}`
+                        : ' · all tiers'}
                     </p>
                     <p className="mt-1 font-mono text-[11px] text-stone-400">→ {estKey}</p>
                   </div>
@@ -370,7 +416,7 @@ function DraftPreview({
   );
 }
 
-function FieldRow({ f, eventId }: { f: AdminFormField; eventId: string }) {
+function FieldRow({ f, eventId, tiers }: { f: AdminFormField; eventId: string; tiers: AdminTicketTier[] }) {
   const id = fieldId(f);
   const [upState, upAction, upPending] = useActionState(updateFormFieldAction, undefined as ActionState);
   const [delState, delAction, delPending] = useActionState(deleteFormFieldAction, undefined as ActionState);
@@ -385,6 +431,9 @@ function FieldRow({ f, eventId }: { f: AdminFormField; eventId: string }) {
             {f.type}
             {f.required ? ' · required' : ' · optional'}
             {f.type === 'select' && f.options?.length ? ` · ${f.options.length} choices` : null}
+            {f.tierId
+              ? ` · ${tiers.find((t) => t._id === f.tierId)?.name ?? 'specific tier'}`
+              : ' · all tiers'}
           </p>
           {f.type === 'select' && (f.options?.length ?? 0) > 0 ? (
             <ul className="mt-2 list-inside list-disc text-[12px] text-stone-600">
@@ -481,6 +530,7 @@ function FieldRow({ f, eventId }: { f: AdminFormField; eventId: string }) {
                 className={`${fieldClass} resize-y`}
               />
             </div>
+            <TierSelect tiers={tiers} value={f.tierId} id={`e-tier-${id}`} name="tierId" />
             <button
               type="submit"
               disabled={upPending}
@@ -498,10 +548,12 @@ function FieldRow({ f, eventId }: { f: AdminFormField; eventId: string }) {
 export function FormFieldsManager({
   eventId,
   fields,
+  tiers = [],
   fieldsLoadError,
 }: {
   eventId: string;
   fields: AdminFormField[];
+  tiers?: AdminTicketTier[];
   /** When set, the form-fields list failed to load (never silently assume empty). */
   fieldsLoadError?: string | null;
 }) {
@@ -519,13 +571,14 @@ export function FormFieldsManager({
     [existingKeys, draft],
   );
 
-  const addPreset = useCallback((preset: RegistrationFieldPreset) => {
+  const addPreset = useCallback((preset: RegistrationFieldPreset, tierId: string | null) => {
     setDraft((d) => [
       ...d,
       {
         id: newRowId(),
         kind: 'preset',
         presetId: preset.id,
+        tierId,
         ...(preset.type === 'select' && preset.options?.length ? { optionsOverride: [...preset.options] } : {}),
       },
     ]);
@@ -582,7 +635,7 @@ export function FormFieldsManager({
         {fields.length > 0 ? (
           <ul className="mt-4 divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white px-4">
             {fields.map((f) => (
-              <FieldRow key={fieldId(f)} f={f} eventId={eventId} />
+              <FieldRow key={fieldId(f)} f={f} eventId={eventId} tiers={tiers} />
             ))}
           </ul>
         ) : null}
@@ -592,8 +645,8 @@ export function FormFieldsManager({
 <br/>
 
 
-      <PresetPicker onPick={addPreset} savedFields={fields} draftPresetIds={draftPresetIds} />
-      <AddToDraftForm onAdd={addCustom} />
+      <PresetPicker onPick={addPreset} savedFields={fields} draftPresetIds={draftPresetIds} tiers={tiers} />
+      <AddToDraftForm onAdd={addCustom} tiers={tiers} />
 
       <br/>
 <hr />
@@ -610,6 +663,7 @@ export function FormFieldsManager({
           keyByRowId={keyByRowId}
           onUpdatePresetOptions={updatePresetOptions}
           onUpdateCustomOptions={updateCustomOptions}
+          tiers={tiers}
         />
       </div>
     </div>
