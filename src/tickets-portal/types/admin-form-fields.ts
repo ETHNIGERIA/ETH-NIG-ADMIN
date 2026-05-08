@@ -3,6 +3,7 @@ export type FormFieldType = 'text' | 'textarea' | 'select' | 'checkbox' | 'numbe
 export type AdminFormField = {
   _id: string;
   eventId: string;
+  tierId?: string | null;   // null = global (all tiers), set = tier-specific
   fieldKey: string;
   label: string;
   type: FormFieldType;

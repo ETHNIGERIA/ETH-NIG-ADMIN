@@ -31,6 +31,9 @@ function validateDraftPayload(raw: unknown): RegistrationDraftRowPayload[] | nul
   for (const row of raw) {
     if (!row || typeof row !== 'object') return null;
     const kind = (row as { kind?: string }).kind;
+    const tierIdRaw = (row as { tierId?: unknown }).tierId;
+    const tierId = typeof tierIdRaw === 'string' && tierIdRaw ? tierIdRaw : null;
+
     if (kind === 'preset') {
       const presetId = String((row as { presetId?: unknown }).presetId ?? '').trim();
       if (!presetId) return null;
@@ -39,11 +42,9 @@ function validateDraftPayload(raw: unknown): RegistrationDraftRowPayload[] | nul
       if (Array.isArray(optRaw)) {
         options = optRaw.map((s) => String(s).trim()).filter(Boolean);
       }
-      if (options?.length) {
-        out.push({ kind: 'preset', presetId, options });
-      } else {
-        out.push({ kind: 'preset', presetId });
-      }
+      const payload: RegistrationDraftRowPayload = { kind: 'preset', presetId, tierId };
+      if (options?.length) payload.options = options;
+      out.push(payload);
       continue;
     }
     if (kind === 'custom') {
@@ -56,7 +57,9 @@ function validateDraftPayload(raw: unknown): RegistrationDraftRowPayload[] | nul
         options = optRaw.map((s) => String(s).trim()).filter(Boolean);
       }
       if (!label) return null;
-      out.push({ kind: 'custom', label, type, required, options });
+      const payload: RegistrationDraftRowPayload = { kind: 'custom', label, type, required, tierId };
+      if (options?.length) payload.options = options;
+      out.push(payload);
       continue;
     }
     return null;
@@ -122,6 +125,7 @@ export async function commitRegistrationDraftAction(
           type: preset.type,
           required: preset.required,
           sortOrder: sortCursor++,
+          tierId: row.tierId ?? null,
         };
 
         if (preset.type === 'select') {
@@ -146,6 +150,7 @@ export async function commitRegistrationDraftAction(
           type: row.type,
           required: row.required,
           sortOrder: sortCursor++,
+          tierId: row.tierId ?? null,
         };
         if (row.type === 'select' && row.options?.length) {
           body.options = row.options;
@@ -181,6 +186,7 @@ export async function updateFormFieldAction(_prev: ActionState, formData: FormDa
     .filter(Boolean);
   const required = formData.get('required') === 'on' || formData.get('required') === 'true';
   const sortRaw = String(formData.get('sortOrder') ?? '').trim();
+  const tierIdRaw = String(formData.get('tierId') ?? '').trim();
 
   if (!eventId || !fieldId || !label) {
     return { error: 'Missing field or label.' };
@@ -190,6 +196,7 @@ export async function updateFormFieldAction(_prev: ActionState, formData: FormDa
     label,
     type,
     required,
+    tierId: tierIdRaw || null,
   };
   if (type === 'select') {
     patch.options = options;

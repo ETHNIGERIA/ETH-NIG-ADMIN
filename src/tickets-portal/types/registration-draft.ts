@@ -5,6 +5,7 @@ export type RegistrationDraftRowPayload =
   | {
       kind: 'preset';
       presetId: string;
+      tierId?: string | null;
       /** Overrides catalog options for `select` presets */
       options?: string[];
     }
@@ -13,5 +14,6 @@ export type RegistrationDraftRowPayload =
       label: string;
       type: FormFieldType;
       required: boolean;
+      tierId?: string | null;
       options?: string[];
     };

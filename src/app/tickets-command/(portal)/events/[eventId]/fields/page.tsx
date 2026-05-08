@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
-import type { AdminEvent } from '@/tickets-portal/types/admin-events';
+import type { AdminEvent, Paginated } from '@/tickets-portal/types/admin-events';
 import type { AdminFormField } from '@/tickets-portal/types/admin-form-fields';
+import type { AdminTicketTier } from '@/tickets-portal/types/admin-tiers';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 import { FormFieldsManager } from '@/tickets-portal/components/events/FormFieldsManager';
 import { fetchAllEventFormFields } from '@/tickets-portal/data/event-form-fields-read';
@@ -45,6 +46,16 @@ export default async function EventFormFieldsPage({
     fieldsLoadError = e instanceof Error ? e.message : 'Could not load registration fields.';
   }
 
+  let tiers: AdminTicketTier[] = [];
+  try {
+    const res = await ticketsApiGet<Paginated<AdminTicketTier>>(
+      `/admin/events/${id}/tiers?limit=100`,
+    );
+    tiers = res.data.map((t) => ({ ...t, _id: normalizeDocumentId(t._id) }));
+  } catch {
+    // non-fatal — tier selector just won't show
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -57,11 +68,11 @@ export default async function EventFormFieldsPage({
         <h1 className="mt-4 text-[28px] font-semibold tracking-tight text-stone-900">Registration fields</h1>
         <p className="mt-2 max-w-2xl text-[15px] text-stone-600">
           Questions collected during checkout for <span className="font-medium text-stone-800">{event.name}</span>.
-          Order follows sort order; keys must stay stable once you start receiving answers.
+          Global fields appear for all tiers. Tier-specific fields only appear when that tier is selected.
         </p>
       </div>
 
-      <FormFieldsManager eventId={id} fields={fields} fieldsLoadError={fieldsLoadError} />
+      <FormFieldsManager eventId={id} fields={fields} tiers={tiers} fieldsLoadError={fieldsLoadError} />
     </div>
   );
 }

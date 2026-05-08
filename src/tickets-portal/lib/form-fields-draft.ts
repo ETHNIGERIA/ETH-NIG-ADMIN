@@ -8,6 +8,7 @@ export type ClientDraftRow =
       id: string;
       kind: 'preset';
       presetId: string;
+      tierId?: string | null;
       /** When set, replaces catalog options for select-type presets (editable in draft). */
       optionsOverride?: string[];
     }
@@ -17,6 +18,7 @@ export type ClientDraftRow =
       label: string;
       type: FormFieldType;
       required: boolean;
+      tierId?: string | null;
       options: string[];
     };
 
@@ -68,7 +70,7 @@ export function draftRowsToPayload(rows: ClientDraftRow[]): RegistrationDraftRow
     if (r.kind === 'preset') {
       const p = getRegistrationFieldPreset(r.presetId);
       const opts = effectivePresetSelectOptions(r);
-      const payload: RegistrationDraftRowPayload = { kind: 'preset', presetId: r.presetId };
+      const payload: RegistrationDraftRowPayload = { kind: 'preset', presetId: r.presetId, tierId: r.tierId ?? null };
       if (p?.type === 'select' && opts.length > 0) {
         payload.options = opts;
       }
@@ -79,6 +81,7 @@ export function draftRowsToPayload(rows: ClientDraftRow[]): RegistrationDraftRow
       label: r.label,
       type: r.type,
       required: r.required,
+      tierId: r.tierId ?? null,
     };
     if (r.type === 'select' && r.options.length > 0) {
       payload.options = r.options;
