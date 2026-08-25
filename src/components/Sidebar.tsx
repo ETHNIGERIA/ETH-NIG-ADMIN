@@ -26,6 +26,8 @@ const navLinks = [
   { label: 'Registrations', icon: ClipboardList, path: '/registrations' },
   { label: 'Blogs', icon: Newspaper, path: '/blogs' },
   { label: 'Career', icon: Briefcase, path: '/career' },
+  { label: 'Campus', icon: Briefcase, path: '/campus' },
+  { label: 'Founders', icon: Briefcase, path: '/founders' },
 ];
 
 export default function Sidebar() {
