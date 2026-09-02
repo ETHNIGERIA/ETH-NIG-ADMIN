@@ -11,12 +11,24 @@ import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 
 export type ActionState = { error?: string } | undefined;
 
+function parseJsonArray(formData: FormData, key: string): unknown[] | undefined {
+  const raw = String(formData.get(key) ?? '').trim();
+  if (!raw) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function createEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const slug = String(formData.get('slug') ?? '').trim().toLowerCase();
   const name = String(formData.get('name') ?? '').trim();
   const startsRaw = String(formData.get('startsAt') ?? '');
   const endsRaw = String(formData.get('endsAt') ?? '');
   const originsRaw = String(formData.get('allowedOrigins') ?? '').trim();
+  const daysRaw = String(formData.get('daysJson') ?? '').trim();
 
   if (!slug || !name || !startsRaw || !endsRaw) {
     return { error: 'Slug, name, start, and end are required.' };
@@ -30,6 +42,8 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
   if (endsAt <= startsAt) {
     return { error: 'End must be after start.' };
   }
+  const days = parseJsonArray(formData, 'daysJson');
+  if (daysRaw && !days) return { error: 'Days must be valid JSON array.' };
 
   const allowedOrigins = originsRaw
     ? originsRaw
@@ -45,6 +59,8 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
       name,
       startsAt: startsAt.toISOString(),
       endsAt: endsAt.toISOString(),
+      ...(days ? { days } : {}),
+      timezone: String(formData.get('timezone') ?? 'Africa/Lagos').trim() || 'Africa/Lagos',
       ...(allowedOrigins?.length ? { allowedOrigins } : {}),
     });
   } catch (e) {
@@ -60,6 +76,7 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
   const startsRaw = String(formData.get('startsAt') ?? '');
   const endsRaw = String(formData.get('endsAt') ?? '');
   const originsRaw = String(formData.get('allowedOrigins') ?? '').trim();
+  const daysRaw = String(formData.get('daysJson') ?? '').trim();
 
   if (!eventId || !name || !startsRaw || !endsRaw) {
     return { error: 'Name, start, and end are required.' };
@@ -73,6 +90,11 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
   if (endsAt <= startsAt) {
     return { error: 'End must be after start.' };
   }
+  const days = parseJsonArray(formData, 'daysJson');
+  if (daysRaw && !days) return { error: 'Days must be valid JSON array.' };
+  // Clearing configured days changes registration/check-in behaviour, so it is
+  // an explicit opt-in (checkbox), not an inferred consequence of a blank field.
+  const clearDays = formData.get('clearDays') === 'on';
 
   const allowedOrigins = originsRaw
     ? originsRaw
@@ -86,6 +108,8 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
       name,
       startsAt: startsAt.toISOString(),
       endsAt: endsAt.toISOString(),
+      ...(clearDays ? { days: [] } : days ? { days } : {}),
+      timezone: String(formData.get('timezone') ?? 'Africa/Lagos').trim() || 'Africa/Lagos',
       allowedOrigins,
     });
   } catch (e) {

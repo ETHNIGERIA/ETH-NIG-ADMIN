@@ -46,3 +46,18 @@ export async function cancelRegistrationAction(
 
   redirect(`/tickets-command/events/${eventId}/registrations`);
 }
+
+export async function sendPaymentReminderAction(
+  _prev: RegistrationActionState,
+  formData: FormData,
+): Promise<RegistrationActionState> {
+  const eventId = String(formData.get('eventId') ?? '').trim();
+  const registrationId = String(formData.get('registrationId') ?? '').trim();
+  if (!eventId || !registrationId) return { error: 'Missing event or registration.' };
+  try {
+    await ticketsApiPost(`/admin/events/${eventId}/registrations/${registrationId}/payment-reminder`, {});
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Could not send payment reminder.' };
+  }
+  redirect(`/tickets-command/events/${eventId}/registrations/${registrationId}`);
+}
