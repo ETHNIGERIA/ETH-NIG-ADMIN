@@ -1,4 +1,5 @@
 export type TicketTierStatus = 'active' | 'inactive' | 'sold_out';
+export type TicketPurchaseType = 'all_days' | 'single_day';
 
 export type AdminTicketTier = {
   _id: string;
@@ -18,4 +19,6 @@ export type AdminTicketTier = {
   earlyBirdCapacity?: number;
   createdAt?: string;
   updatedAt?: string;
+  purchaseType?: TicketPurchaseType;
+  volumeDiscounts?: Array<{ minimumQuantity: number; percentage: number }>;
 };

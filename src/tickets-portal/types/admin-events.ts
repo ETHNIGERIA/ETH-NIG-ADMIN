@@ -10,6 +10,8 @@ export type AdminEvent = {
   allowedOrigins: string[];
   createdAt?: string;
   updatedAt?: string;
+  timezone?: string;
+  days?: Array<{ key: string; date: string; label: string; startsAt?: string; endsAt?: string }>;
 };
 
 export type Paginated<T> = {

@@ -13,6 +13,16 @@ function parseBenefits(text: string): string[] {
     .filter(Boolean);
 }
 
+function parseDiscounts(text: string): unknown[] | undefined {
+  if (!text.trim()) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function parseDatetimeLocalToIso(formData: FormData, key: string): string | undefined {
   const raw = String(formData.get(key) ?? '').trim();
   if (!raw) return undefined;
@@ -47,10 +57,15 @@ export async function createTierAction(_prev: ActionState, formData: FormData): 
     .trim()
     .toUpperCase() || 'NGN';
   const capRaw = String(formData.get('capacity') ?? '').trim();
+  const purchaseType = String(formData.get('purchaseType') ?? 'all_days');
+  const discountsRaw = String(formData.get('volumeDiscounts') ?? '');
+  const volumeDiscounts = parseDiscounts(discountsRaw);
 
   if (!eventId || !name) {
     return { error: 'Event and tier name are required.' };
   }
+  if (!['all_days', 'single_day'].includes(purchaseType)) return { error: 'Invalid purchase type.' };
+  if (discountsRaw.trim() && !volumeDiscounts) return { error: 'Volume discounts must be a valid JSON array.' };
 
   const priceMinor = isFree ? 0 : nairaInputToMinor(priceInput);
   if (!isFree && priceMinor <= 0) {
@@ -62,6 +77,8 @@ export async function createTierAction(_prev: ActionState, formData: FormData): 
     isFree,
     priceMinor,
     benefits: parseBenefits(benefitsRaw),
+    purchaseType,
+    ...(volumeDiscounts ? { volumeDiscounts } : {}),
   };
   if (description) body.description = description;
   if (!isFree) body.currency = currency;
@@ -105,6 +122,10 @@ export async function updateTierAction(_prev: ActionState, formData: FormData): 
   const capRaw = String(formData.get('capacity') ?? '').trim();
   const status = String(formData.get('status') ?? '').trim() as 'active' | 'inactive';
   const clearEarlyBird = formData.get('clearEarlyBird') === 'on';
+  const purchaseType = String(formData.get('purchaseType') ?? 'all_days');
+  const discountsRaw = String(formData.get('volumeDiscounts') ?? '').trim();
+  // On update, an emptied field is an explicit "no volume discounts" — send [].
+  const parsedDiscounts = discountsRaw === '' ? [] : parseDiscounts(discountsRaw);
 
   if (!eventId || !tierId || !name) {
     return { error: 'Missing tier or name.' };
@@ -112,6 +133,9 @@ export async function updateTierAction(_prev: ActionState, formData: FormData): 
   if (status !== 'active' && status !== 'inactive') {
     return { error: 'Status must be active or inactive.' };
   }
+  if (!['all_days', 'single_day'].includes(purchaseType)) return { error: 'Invalid purchase type.' };
+  if (!parsedDiscounts) return { error: 'Volume discounts must be a valid JSON array.' };
+  const volumeDiscounts: unknown[] = parsedDiscounts;
 
   const priceMinor = isFree ? 0 : nairaInputToMinor(priceInput);
   if (!isFree && priceMinor <= 0) {
@@ -124,6 +148,8 @@ export async function updateTierAction(_prev: ActionState, formData: FormData): 
     isFree,
     status,
     benefits: parseBenefits(benefitsRaw),
+    purchaseType,
+    volumeDiscounts,
     description,
   };
   if (!isFree) {

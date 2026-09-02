@@ -14,6 +14,7 @@ import { minorToNairaInput } from '@/tickets-portal/lib/money-input';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 import { toDatetimeLocalValue } from '@/tickets-portal/lib/datetime-local';
 import { BenefitsListEditor } from '@/tickets-portal/components/events/BenefitsListEditor';
+import { VolumeDiscountEditor } from '@/tickets-portal/components/events/VolumeDiscountEditor';
 
 const fieldClass =
   'w-full rounded-md border border-stone-200 bg-white px-3 py-2.5 text-[15px] text-stone-900 outline-none focus:border-stone-300 focus:ring-2 focus:ring-stone-900/10';
@@ -252,6 +253,16 @@ function AddTierForm({ eventId, onDone }: { eventId: string; onDone?: () => void
             <input type="hidden" name="currency" value="" />
           </>
         )}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className={labelClass} htmlFor="new-purchase-type">Entry type</label>
+            <select id="new-purchase-type" name="purchaseType" defaultValue="all_days" className={fieldClass}>
+              <option value="all_days">All event days</option>
+              <option value="single_day">Single day</option>
+            </select>
+          </div>
+          <VolumeDiscountEditor />
+        </div>
         <div>
           <label className={labelClass} htmlFor="new-cap">
             Capacity <span className="font-normal text-stone-400">(optional)</span>
@@ -412,6 +423,19 @@ function TierRow({ tier, eventId }: { tier: AdminTicketTier; eventId: string }) 
                       <input type="hidden" name="currency" value="" />
                     </>
                   )}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className={labelClass} htmlFor={`purchase-${id}`}>Entry type</label>
+                      <select id={`purchase-${id}`} name="purchaseType" defaultValue={tier.purchaseType ?? 'all_days'} className={fieldClass}>
+                        <option value="all_days">All event days</option>
+                        <option value="single_day">Single day</option>
+                      </select>
+                    </div>
+                    <VolumeDiscountEditor
+                      initialDiscounts={tier.volumeDiscounts}
+                      idPrefix={`volume-${id}`}
+                    />
+                  </div>
                   <div>
                     <label className={labelClass} htmlFor={`cap-${id}`}>
                       Capacity

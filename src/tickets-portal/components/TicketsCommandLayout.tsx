@@ -17,6 +17,8 @@ import {
   Globe,
   PlusCircle,
   Ticket,
+  ClipboardList,
+  Briefcase,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { ToastProvider } from '@/tickets-portal/components/ui/ToastProvider';
@@ -25,6 +27,8 @@ const TICKETS_NAV = [
   { href: '/tickets-command', label: 'Overview', icon: LayoutDashboard },
   { href: '/tickets-command/events', label: 'Events', icon: Calendar },
   { href: '/tickets-command/influencers', label: 'Influencers', icon: Megaphone },
+  { href: '/tickets-command/applications', label: 'Applications', icon: ClipboardList },
+  { href: '/tickets-command/careers', label: 'Careers', icon: Briefcase },
   { href: '/tickets-command/communities', label: 'Communities', icon: UsersRound },
   { href: '/tickets-command/users', label: 'Users', icon: Users },
   { href: '/tickets-command/admins', label: 'Admins', icon: Shield },

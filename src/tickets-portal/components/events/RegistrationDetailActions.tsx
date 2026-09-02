@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import { cancelRegistrationAction, confirmRegistrationAction } from '@/tickets-portal/actions/registrations';
+import { cancelRegistrationAction, confirmRegistrationAction, sendPaymentReminderAction } from '@/tickets-portal/actions/registrations';
 import type { RegistrationStatus } from '@/tickets-portal/types/admin-registrations';
 
 const btnPrimary =
@@ -18,13 +18,14 @@ export function RegistrationDetailActions({
   registrationId: string;
   status: RegistrationStatus;
 }) {
-  const [confirmState, confirmAction] = useActionState(confirmRegistrationAction, undefined);
-  const [cancelState, cancelAction] = useActionState(cancelRegistrationAction, undefined);
+  const [confirmState, confirmAction, confirmPending] = useActionState(confirmRegistrationAction, undefined);
+  const [cancelState, cancelAction, cancelPending] = useActionState(cancelRegistrationAction, undefined);
+  const [reminderState, reminderAction, reminderPending] = useActionState(sendPaymentReminderAction, undefined);
 
   const canConfirm = status === 'pending';
   const canCancel = status !== 'cancelled';
 
-  const err = confirmState?.error ?? cancelState?.error;
+  const err = confirmState?.error ?? cancelState?.error ?? reminderState?.error;
 
   return (
     <div className="space-y-3">
@@ -35,11 +36,22 @@ export function RegistrationDetailActions({
       ) : null}
       <div className="flex flex-wrap gap-3">
         {canConfirm ? (
-          <form action={confirmAction}>
+          <form
+            action={confirmAction}
+            onSubmit={(e) => {
+              if (
+                !window.confirm(
+                  'Confirm this registration?\n\nIf it has a Paystack payment, the payment is verified with Paystack first — confirmation is refused if that payment is not successful. On success (or when there is no payment on record) tickets are issued and the confirmation email is sent to the attendee.',
+                )
+              ) {
+                e.preventDefault();
+              }
+            }}
+          >
             <input type="hidden" name="eventId" value={eventId} />
             <input type="hidden" name="registrationId" value={registrationId} />
-            <button type="submit" className={btnPrimary}>
-              Confirm registration
+            <button type="submit" className={btnPrimary} disabled={confirmPending}>
+              {confirmPending ? 'Confirming…' : 'Confirm registration'}
             </button>
           </form>
         ) : null}
@@ -58,8 +70,17 @@ export function RegistrationDetailActions({
           >
             <input type="hidden" name="eventId" value={eventId} />
             <input type="hidden" name="registrationId" value={registrationId} />
-            <button type="submit" className={btnDanger}>
-              Cancel registration
+            <button type="submit" className={btnDanger} disabled={cancelPending}>
+              {cancelPending ? 'Cancelling…' : 'Cancel registration'}
+            </button>
+          </form>
+        ) : null}
+        {canConfirm ? (
+          <form action={reminderAction}>
+            <input type="hidden" name="eventId" value={eventId} />
+            <input type="hidden" name="registrationId" value={registrationId} />
+            <button type="submit" disabled={reminderPending} className="rounded-md border border-stone-300 px-4 py-2 text-[14px] font-medium text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50">
+              {reminderPending ? 'Sending…' : 'Send payment reminder'}
             </button>
           </form>
         ) : null}

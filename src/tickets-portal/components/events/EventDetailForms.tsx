@@ -11,8 +11,10 @@ import {
 import type { AdminEvent, EventStatus } from '@/tickets-portal/types/admin-events';
 import type { AdminFormField } from '@/tickets-portal/types/admin-form-fields';
 import { toDatetimeLocalValue } from '@/tickets-portal/lib/datetime-local';
+import { TIMEZONE_OPTIONS } from '@/tickets-portal/lib/timezones';
 import { DetailIntegrationHint } from '@/tickets-portal/components/events/IntegrationHintCollapsible';
 import { EventTiersSection } from '@/tickets-portal/components/events/EventTiersSection';
+import { EventDaysEditor } from '@/tickets-portal/components/events/EventDaysEditor';
 import type { AdminTicketTier } from '@/tickets-portal/types/admin-tiers';
 
 const fieldClass =
@@ -143,7 +145,6 @@ export function EventDetailForms({
   const [statusState, statusAction, statusPending] = useActionState(setEventStatusAction, undefined as ActionState);
 
   const originsText = (event.allowedOrigins ?? []).join('\n');
-
   const tierCount = tiers.length;
   const sortedFields = sortFormFields(formFields);
   const fieldCount = sortedFields.length;
@@ -252,6 +253,22 @@ export function EventDetailForms({
               className={fieldClass}
             />
           </div>
+
+          <div>
+            <label htmlFor="timezone" className={labelClass}>Timezone</label>
+            <select
+              id="timezone"
+              name="timezone"
+              className={fieldClass}
+              defaultValue={TIMEZONE_OPTIONS.includes(event.timezone as (typeof TIMEZONE_OPTIONS)[number]) ? event.timezone : 'Africa/Lagos'}
+            >
+              {TIMEZONE_OPTIONS.map((timezone) => (
+                <option key={timezone} value={timezone}>{timezone}</option>
+              ))}
+            </select>
+          </div>
+
+          <EventDaysEditor initialDays={event.days} />
 
           <div>
             <label htmlFor="allowedOrigins" className={labelClass}>

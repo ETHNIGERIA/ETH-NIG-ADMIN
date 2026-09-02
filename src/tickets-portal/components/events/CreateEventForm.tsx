@@ -4,7 +4,9 @@ import { useActionState, useState } from 'react';
 import { createEventAction, type ActionState } from '@/tickets-portal/actions/events';
 import Link from 'next/link';
 import { slugifyFromTitle } from '@/tickets-portal/lib/slugify';
+import { TIMEZONE_OPTIONS } from '@/tickets-portal/lib/timezones';
 import { CreateIntegrationHint } from '@/tickets-portal/components/events/IntegrationHintCollapsible';
+import { EventDaysEditor } from '@/tickets-portal/components/events/EventDaysEditor';
 
 const fieldClass =
   'w-full rounded-md border border-stone-200 bg-white px-3 py-2.5 text-[15px] text-stone-900 outline-none focus:border-stone-300 focus:ring-2 focus:ring-stone-900/10';
@@ -90,6 +92,17 @@ export function CreateEventForm() {
           </label>
           <input id="endsAt" name="endsAt" type="datetime-local" required className={fieldClass} />
         </div>
+
+        <div>
+          <label htmlFor="timezone" className={labelClass}>Timezone</label>
+          <select id="timezone" name="timezone" className={fieldClass} defaultValue="Africa/Lagos">
+            {TIMEZONE_OPTIONS.map((timezone) => (
+              <option key={timezone} value={timezone}>{timezone}</option>
+            ))}
+          </select>
+        </div>
+
+        <EventDaysEditor />
 
         <div>
           <label htmlFor="allowedOrigins" className={labelClass}>
