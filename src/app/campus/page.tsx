@@ -118,14 +118,14 @@ const Campus = () => {
       'Participated Hackathon': c.participatedHackathon,
       'Hackathon List': c.hackathonList,
       'Has Research Content': c.hasResearchContent,
-      'Research Links': c.researchLinks ? c.researchLinks.join(', ') : '',
+      'Research Links': c.researchLinks || '',
       'Has Startup Idea': c.hasStartupIdea,
-      'Startup Description': c.startupDescription
-        ? c.startupDescription.join(', ')
-        : '',
+      'Startup Description': c.startupDescription || '',
       'Why Join': c.whyJoin,
       Consent: c.consent,
-      'Submitted At': c.submittedAt,
+      'Submitted At': c.submittedAt
+  ? new Date((c.submittedAt as unknown as { seconds: number }).seconds * 1000).toLocaleString()
+  : '',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportRows);
@@ -231,12 +231,7 @@ const Campus = () => {
                         {community.consent ? 'Yes' : 'No'}
                       </td>
                       <td className="p-5 text-right space-x-4">
-                        <button
-                          onClick={() => handleDownloadExcel([community])}
-                          className="text-[#003D11] hover:text-[#3C9B3E] text-xs font-bold uppercase"
-                        >
-                          Download as Excel
-                        </button>
+                       
                         <button
                           onClick={() => handleDelete(community.id)}
                           className="text-red-400 hover:text-red-600 transition-colors inline-block align-middle"
