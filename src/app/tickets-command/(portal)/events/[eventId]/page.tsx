@@ -4,6 +4,7 @@ import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
 import type { AdminEvent, Paginated } from '@/tickets-portal/types/admin-events';
 import type { AdminTicketTier } from '@/tickets-portal/types/admin-tiers';
 import type { AdminFormField } from '@/tickets-portal/types/admin-form-fields';
+import type { ProgramAdmission } from '@/tickets-portal/types/admin-program-admission';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 import { EventDetailForms } from '@/tickets-portal/components/events/EventDetailForms';
 import { fetchAllEventFormFields } from '@/tickets-portal/data/event-form-fields-read';
@@ -48,6 +49,17 @@ export default async function EventDetailPage({
     formFieldsLoadError = e instanceof Error ? e.message : 'Could not load registration fields.';
   }
 
+  let programAdmission: ProgramAdmission[] = [];
+  let programAdmissionLoadError: string | null = null;
+  try {
+    programAdmission = await ticketsApiGet<ProgramAdmission[]>(
+      `/admin/events/${id}/program-admission`,
+    );
+  } catch (e) {
+    programAdmissionLoadError =
+      e instanceof Error ? e.message : 'Could not load program admission.';
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -65,6 +77,8 @@ export default async function EventDetailPage({
         tiers={tiers}
         formFields={formFields}
         formFieldsLoadError={formFieldsLoadError}
+        programAdmission={programAdmission}
+        programAdmissionLoadError={programAdmissionLoadError}
       />
     </div>
   );

@@ -15,7 +15,9 @@ import { TIMEZONE_OPTIONS } from '@/tickets-portal/lib/timezones';
 import { DetailIntegrationHint } from '@/tickets-portal/components/events/IntegrationHintCollapsible';
 import { EventTiersSection } from '@/tickets-portal/components/events/EventTiersSection';
 import { EventDaysEditor } from '@/tickets-portal/components/events/EventDaysEditor';
+import { ProgramAdmissionSection } from '@/tickets-portal/components/events/ProgramAdmissionSection';
 import type { AdminTicketTier } from '@/tickets-portal/types/admin-tiers';
+import type { ProgramAdmission } from '@/tickets-portal/types/admin-program-admission';
 
 const fieldClass =
   'w-full rounded-md border border-stone-200 bg-white px-3 py-2.5 text-[15px] text-stone-900 outline-none focus:border-stone-300 focus:ring-2 focus:ring-stone-900/10';
@@ -80,6 +82,7 @@ function EventPageNav({ eventId }: { eventId: string }) {
     { href: '#section-details', label: 'Details' },
     { href: '#section-registration-fields', label: 'Fields' },
     { href: '#section-tiers', label: 'Tiers' },
+    { href: '#section-program-admission', label: 'Programs' },
     { href: '#section-danger', label: 'Danger' },
   ];
 
@@ -132,6 +135,8 @@ export function EventDetailForms({
   tiers,
   formFields,
   formFieldsLoadError,
+  programAdmission,
+  programAdmissionLoadError,
 }: {
   event: AdminEvent;
   eventId: string;
@@ -139,6 +144,9 @@ export function EventDetailForms({
   formFields: AdminFormField[];
   /** When set, form fields failed to load — summary counts may be wrong. */
   formFieldsLoadError?: string | null;
+  programAdmission: ProgramAdmission[];
+  /** When set, the program admission allowlist failed to load. */
+  programAdmissionLoadError?: string | null;
 }) {
   const [updateState, updateAction, updatePending] = useActionState(updateEventAction, undefined as ActionState);
   const [deleteState, deleteAction, deletePending] = useActionState(deleteEventAction, undefined as ActionState);
@@ -357,6 +365,23 @@ export function EventDetailForms({
       <div id="section-tiers" className="scroll-mt-24 border-l-2 border-stone-300 pl-5 sm:scroll-mt-28 sm:pl-6">
         <EventTiersSection eventId={eventId} initialTiers={tiers} />
       </div>
+
+      <br />
+      <hr />
+      <br />
+
+      <DetailSection
+        id="section-program-admission"
+        eyebrow="Gated programs"
+        title="Program admission"
+      >
+        <ProgramAdmissionSection
+          eventId={eventId}
+          tiers={tiers}
+          admission={programAdmission}
+          loadError={programAdmissionLoadError}
+        />
+      </DetailSection>
 
       <br />
       <hr />
