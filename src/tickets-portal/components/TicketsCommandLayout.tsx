@@ -20,6 +20,7 @@ import {
   ClipboardList,
   Briefcase,
   Rocket,
+  Inbox,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { ToastProvider } from '@/tickets-portal/components/ui/ToastProvider';
@@ -30,6 +31,7 @@ const TICKETS_NAV = [
   { href: '/tickets-command/influencers', label: 'Influencers', icon: Megaphone },
   { href: '/tickets-command/applications', label: 'Applications', icon: ClipboardList },
   { href: '/tickets-command/programs', label: 'Programs', icon: Rocket },
+  { href: '/tickets-command/contact', label: 'Messages', icon: Inbox },
   { href: '/tickets-command/careers', label: 'Careers', icon: Briefcase },
   { href: '/tickets-command/communities', label: 'Communities', icon: UsersRound },
   { href: '/tickets-command/users', label: 'Users', icon: Users },

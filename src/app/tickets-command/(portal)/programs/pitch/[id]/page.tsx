@@ -37,6 +37,10 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 
 function ExtLink({ href }: { href: string }) {
   if (!href) return null;
+  // The "where to find you" field can be a link or a free-text description.
+  if (!/^https?:\/\//i.test(href.trim())) {
+    return <span className="text-[14px] text-stone-800 whitespace-pre-wrap">{href}</span>;
+  }
   return (
     <a
       href={href}
@@ -92,7 +96,7 @@ export default async function PitchApplicationDetailPage({
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <Card title="Company">
-            <Field label="Website" value={<ExtLink href={app.website} />} />
+            <Field label="Where to find them" value={<ExtLink href={app.website} />} />
             <Field label="Sector" value={pitchSectorLabel(app.sector)} />
             <Field label="Stage" value={pitchStageLabel(app.stage)} />
             <Field label="Year founded" value={String(app.yearFounded)} />
