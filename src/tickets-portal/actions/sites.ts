@@ -1,5 +1,6 @@
 'use server';
 
+import { unstable_rethrow } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import {
   ticketsApiDelete,
@@ -15,6 +16,7 @@ export async function fetchAdminSites(): Promise<AdminSite[]> {
   try {
     return await ticketsApiGet<AdminSite[]>('/admin/sites');
   } catch (err) {
+    unstable_rethrow(err);
     console.error('[fetchAdminSites error]', err);
     return [];
   }
@@ -42,6 +44,7 @@ export async function createSiteAction(
       isActive: true,
     });
   } catch (err) {
+    unstable_rethrow(err);
     return { error: err instanceof Error ? err.message : 'Could not create site.' };
   }
 
@@ -68,6 +71,7 @@ export async function updateSiteAction(
       isActive,
     });
   } catch (err) {
+    unstable_rethrow(err);
     return { error: err instanceof Error ? err.message : 'Could not update site.' };
   }
 
@@ -79,6 +83,7 @@ export async function deleteSiteAction(id: string): Promise<ActionState> {
   try {
     await ticketsApiDelete(`/admin/sites/${id}`);
   } catch (err) {
+    unstable_rethrow(err);
     return { error: err instanceof Error ? err.message : 'Could not delete site.' };
   }
 

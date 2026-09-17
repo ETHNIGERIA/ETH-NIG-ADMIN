@@ -1,5 +1,6 @@
 'use server';
 
+import { unstable_rethrow } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import {
   ticketsApiDelete,
@@ -74,6 +75,7 @@ export async function createDiscountAction(
   try {
     await ticketsApiPost<AdminDiscount, Record<string, unknown>>('/admin/discounts', body);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not create discount.' };
   }
 
@@ -93,6 +95,7 @@ export async function deleteDiscountAction(
   try {
     await ticketsApiDelete(`/admin/discounts/${discountId}`);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not delete discount.' };
   }
 

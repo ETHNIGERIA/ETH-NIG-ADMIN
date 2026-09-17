@@ -1,6 +1,6 @@
 'use server';
 
-import { redirect } from 'next/navigation';
+import { redirect, unstable_rethrow } from 'next/navigation';
 import { ticketsApiDelete, ticketsApiPatch, ticketsApiPost } from '@/tickets-portal/lib/tickets-api.server';
 import { nairaInputToMinor } from '@/tickets-portal/lib/money-input';
 import type { AdminTicketTier } from '@/tickets-portal/types/admin-tiers';
@@ -102,6 +102,7 @@ export async function createTierAction(_prev: ActionState, formData: FormData): 
       body,
     );
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not create tier.' };
   }
 
@@ -184,6 +185,7 @@ export async function updateTierAction(_prev: ActionState, formData: FormData): 
       patch,
     );
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not update tier.' };
   }
 
@@ -200,6 +202,7 @@ export async function deleteTierAction(_prev: ActionState, formData: FormData): 
   try {
     await ticketsApiDelete(`/admin/events/${eventId}/tiers/${tierId}`);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not remove tier.' };
   }
 

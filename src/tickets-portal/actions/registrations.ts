@@ -1,6 +1,6 @@
 'use server';
 
-import { redirect } from 'next/navigation';
+import { redirect, unstable_rethrow } from 'next/navigation';
 import { ticketsApiDelete, ticketsApiPost } from '@/tickets-portal/lib/tickets-api.server';
 import type { AdminRegistration } from '@/tickets-portal/types/admin-registrations';
 
@@ -22,6 +22,7 @@ export async function confirmRegistrationAction(
       {},
     );
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not confirm registration.' };
   }
 
@@ -41,6 +42,7 @@ export async function cancelRegistrationAction(
   try {
     await ticketsApiDelete(`/admin/events/${eventId}/registrations/${registrationId}`);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not cancel registration.' };
   }
 
@@ -57,6 +59,7 @@ export async function sendPaymentReminderAction(
   try {
     await ticketsApiPost(`/admin/events/${eventId}/registrations/${registrationId}/payment-reminder`, {});
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not send payment reminder.' };
   }
   redirect(`/tickets-command/events/${eventId}/registrations/${registrationId}`);

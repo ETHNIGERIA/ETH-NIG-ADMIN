@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import { redirect, unstable_rethrow } from 'next/navigation';
 import {
   ticketsApiDelete,
   ticketsApiGet,
@@ -34,6 +34,7 @@ export async function fetchAdminBlogPosts(params: {
     const qs = query.toString();
     return await ticketsApiGet<AdminBlogListResponse>(`/admin/blog${qs ? `?${qs}` : ''}`);
   } catch (err) {
+    unstable_rethrow(err);
     console.error('[fetchAdminBlogPosts error]', err);
     return { data: [], total: 0, page: 1, limit: 20, pages: 1 };
   }
@@ -43,6 +44,7 @@ export async function fetchAdminBlogPostById(id: string): Promise<AdminBlogPost 
   try {
     return await ticketsApiGet<AdminBlogPost>(`/admin/blog/${id}`);
   } catch (err) {
+    unstable_rethrow(err);
     console.error('[fetchAdminBlogPostById error]', err);
     return null;
   }
@@ -97,6 +99,7 @@ export async function createBlogPostAction(
       },
     });
   } catch (err) {
+    unstable_rethrow(err);
     return { error: err instanceof Error ? err.message : 'Could not create blog post.' };
   }
 
@@ -148,6 +151,7 @@ export async function updateBlogPostAction(
       },
     });
   } catch (err) {
+    unstable_rethrow(err);
     return { error: err instanceof Error ? err.message : 'Could not update blog post.' };
   }
 
@@ -165,6 +169,7 @@ export async function toggleBlogPostStatusAction(
     revalidatePath('/tickets-command/blogs');
     return { success: true };
   } catch (err) {
+    unstable_rethrow(err);
     return { error: err instanceof Error ? err.message : 'Could not toggle status.' };
   }
 }
@@ -175,6 +180,7 @@ export async function deleteBlogPostAction(id: string): Promise<ActionState> {
     revalidatePath('/tickets-command/blogs');
     return { success: true };
   } catch (err) {
+    unstable_rethrow(err);
     return { error: err instanceof Error ? err.message : 'Could not delete blog post.' };
   }
 }

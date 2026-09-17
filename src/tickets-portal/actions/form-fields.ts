@@ -1,6 +1,6 @@
 'use server';
 
-import { redirect } from 'next/navigation';
+import { redirect, unstable_rethrow } from 'next/navigation';
 import { ticketsApiDelete, ticketsApiPatch, ticketsApiPost } from '@/tickets-portal/lib/tickets-api.server';
 import { fieldKeyFromLabel } from '@/tickets-portal/lib/field-key';
 import { getRegistrationFieldPreset } from '@/tickets-portal/lib/registration-field-presets';
@@ -100,6 +100,7 @@ export async function commitRegistrationDraftAction(
     keys = loaded.keys;
     sortCursor = loaded.nextSort;
   } catch (e) {
+    unstable_rethrow(e);
     return {
       error:
         e instanceof Error
@@ -163,6 +164,7 @@ export async function commitRegistrationDraftAction(
       }
     }
   } catch (e) {
+    unstable_rethrow(e);
     return {
       error:
         e instanceof Error
@@ -213,6 +215,7 @@ export async function updateFormFieldAction(_prev: ActionState, formData: FormDa
       patch,
     );
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not update field.' };
   }
 
@@ -229,6 +232,7 @@ export async function deleteFormFieldAction(_prev: ActionState, formData: FormDa
   try {
     await ticketsApiDelete(`/admin/events/${eventId}/form-fields/${fieldId}`);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not delete field.' };
   }
 

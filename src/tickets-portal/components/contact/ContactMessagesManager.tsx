@@ -1,11 +1,12 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { X } from 'lucide-react';
 import { updateContactMessageStatusAction } from '@/tickets-portal/actions/contact';
 import type { ActionState } from '@/tickets-portal/actions/events';
 import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
+import { StatusFilter } from '@/tickets-portal/components/ui/StatusFilter';
 import {
   CONTACT_MESSAGE_STATUSES,
   type ContactMessage,
@@ -34,9 +35,16 @@ const th =
   'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-stone-500';
 const td = 'px-4 py-3 align-top text-sm text-stone-700';
 
-export function ContactMessagesManager({ items }: { items: ContactMessage[] }) {
+export function ContactMessagesManager({
+  items,
+  total,
+  filtered,
+}: {
+  items: ContactMessage[];
+  total: number;
+  filtered: boolean;
+}) {
   const toast = useToast();
-  const [statusFilter, setStatusFilter] = useState<'all' | ContactMessageStatus>('all');
   const [selected, setSelected] = useState<ContactMessage | null>(null);
 
   const [state, action, pending] = useActionState(
@@ -52,43 +60,19 @@ export function ContactMessagesManager({ items }: { items: ContactMessage[] }) {
     wasPending.current = pending;
   }, [pending, state, toast]);
 
-  const filtered = useMemo(
-    () =>
-      statusFilter === 'all'
-        ? items
-        : items.filter((m) => m.status === statusFilter),
-    [items, statusFilter],
-  );
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-stone-500">
-          {filtered.length} of {items.length}{' '}
-          {items.length === 1 ? 'message' : 'messages'}
+          {total} {total === 1 ? 'message' : 'messages'}
         </p>
-        <select
-          value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as 'all' | ContactMessageStatus)
-          }
-          className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm capitalize text-stone-800 outline-none focus:border-stone-400"
-        >
-          <option value="all">All statuses</option>
-          {CONTACT_MESSAGE_STATUSES.map((s) => (
-            <option key={s} value={s} className="capitalize">
-              {s}
-            </option>
-          ))}
-        </select>
+        <StatusFilter statuses={CONTACT_MESSAGE_STATUSES} />
       </div>
 
       <div className="overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-sm">
-        {filtered.length === 0 ? (
+        {items.length === 0 ? (
           <p className="px-4 py-12 text-center text-sm text-stone-500">
-            {items.length === 0
-              ? 'No messages yet.'
-              : 'No messages match this filter.'}
+            {filtered ? 'No messages match this filter.' : 'No messages yet.'}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -102,7 +86,7 @@ export function ContactMessagesManager({ items }: { items: ContactMessage[] }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {filtered.map((m) => (
+                {items.map((m) => (
                   <tr
                     key={m._id}
                     onClick={() => setSelected(m)}

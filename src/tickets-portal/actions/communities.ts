@@ -1,5 +1,6 @@
 'use server';
 
+import { unstable_rethrow } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { ticketsApiDelete, ticketsApiPatch, ticketsApiPost } from '@/tickets-portal/lib/tickets-api.server';
 import type { AdminCommunity } from '@/tickets-portal/types/admin-communities';
@@ -23,6 +24,7 @@ export async function createCommunityAction(
   try {
     await ticketsApiPost<AdminCommunity, Record<string, unknown>>('/admin/communities', body);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not create community.' };
   }
 
@@ -49,6 +51,7 @@ export async function updateCommunityAction(
   try {
     await ticketsApiPatch<AdminCommunity, Record<string, unknown>>(`/admin/communities/${id}`, body);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not update community.' };
   }
 
@@ -67,6 +70,7 @@ export async function deleteCommunityAction(
   try {
     await ticketsApiDelete(`/admin/communities/${id}`);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not delete community.' };
   }
 

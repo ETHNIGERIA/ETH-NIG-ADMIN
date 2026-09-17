@@ -1,5 +1,6 @@
 'use server';
 
+import { unstable_rethrow } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { ticketsApiPatch } from '@/tickets-portal/lib/tickets-api.server';
 import { isObjectId } from '@/tickets-portal/lib/is-object-id';
@@ -21,6 +22,7 @@ export async function updateContactMessageStatusAction(
   try {
     await ticketsApiPatch(`/admin/contact-messages/${id}/status`, { status });
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not update the message.' };
   }
 

@@ -1,5 +1,6 @@
 'use server';
 
+import { unstable_rethrow } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { ticketsApiDelete, ticketsApiPatch, ticketsApiPost } from '@/tickets-portal/lib/tickets-api.server';
 import type { AdminCareer } from '@/tickets-portal/types/admin-careers';
@@ -32,7 +33,7 @@ function readCareer(formData: FormData) {
 
 export async function createCareerAction(_prev: CareerActionState, formData: FormData): Promise<CareerActionState> {
   const result = readCareer(formData); if ('error' in result) return result;
-  try { await ticketsApiPost<AdminCareer>('/admin/careers', result.data); } catch (e) { return { error: e instanceof Error ? e.message : 'Could not create career.' }; }
+  try { await ticketsApiPost<AdminCareer>('/admin/careers', result.data); } catch (e) { unstable_rethrow(e); return { error: e instanceof Error ? e.message : 'Could not create career.' }; }
   revalidatePath('/tickets-command/careers');
   return { ok: true };
 }
@@ -40,14 +41,14 @@ export async function createCareerAction(_prev: CareerActionState, formData: For
 export async function updateCareerAction(_prev: CareerActionState, formData: FormData): Promise<CareerActionState> {
   const id = String(formData.get('careerId') ?? '').trim(); if (!id) return { error: 'Missing career opportunity.' };
   const result = readCareer(formData); if ('error' in result) return result;
-  try { await ticketsApiPatch<AdminCareer>(`/admin/careers/${id}`, result.data); } catch (e) { return { error: e instanceof Error ? e.message : 'Could not update career.' }; }
+  try { await ticketsApiPatch<AdminCareer>(`/admin/careers/${id}`, result.data); } catch (e) { unstable_rethrow(e); return { error: e instanceof Error ? e.message : 'Could not update career.' }; }
   revalidatePath('/tickets-command/careers');
   return { ok: true };
 }
 
 export async function deleteCareerAction(_prev: CareerActionState, formData: FormData): Promise<CareerActionState> {
   const id = String(formData.get('careerId') ?? '').trim(); if (!id) return { error: 'Missing career opportunity.' };
-  try { await ticketsApiDelete(`/admin/careers/${id}`); } catch (e) { return { error: e instanceof Error ? e.message : 'Could not remove career.' }; }
+  try { await ticketsApiDelete(`/admin/careers/${id}`); } catch (e) { unstable_rethrow(e); return { error: e instanceof Error ? e.message : 'Could not remove career.' }; }
   revalidatePath('/tickets-command/careers');
   return { ok: true };
 }

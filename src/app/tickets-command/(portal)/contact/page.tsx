@@ -1,19 +1,38 @@
 import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
-import type { ContactMessagePage } from '@/tickets-portal/types/admin-contact';
+import { CONTACT_MESSAGE_STATUSES, type ContactMessagePage } from '@/tickets-portal/types/admin-contact';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 import { ContactMessagesManager } from '@/tickets-portal/components/contact/ContactMessagesManager';
+import { Pagination } from '@/tickets-portal/components/ui/Pagination';
+import {
+  ADMIN_PAGE_SIZE,
+  parseListParams,
+  redirectIfPastLastPage,
+  toQuery,
+  type ListSearchParams,
+} from '@/tickets-portal/lib/list-params';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ContactMessagesPage() {
+export default async function ContactMessagesPage({
+  searchParams,
+}: {
+  searchParams: Promise<ListSearchParams>;
+}) {
+  const params = parseListParams(await searchParams, CONTACT_MESSAGE_STATUSES);
   let page: ContactMessagePage | null = null;
   let loadError: string | null = null;
   try {
     page = await ticketsApiGet<ContactMessagePage>(
-      '/admin/contact-messages?limit=100',
+      `/admin/contact-messages${toQuery({ page: params.page, limit: ADMIN_PAGE_SIZE, status: params.status })}`,
     );
   } catch (e) {
     loadError = e instanceof Error ? e.message : 'Failed to load messages';
+  }
+
+  if (page) {
+    redirectIfPastLastPage('/tickets-command/contact', params.page, ADMIN_PAGE_SIZE, page.total, {
+      status: params.status,
+    });
   }
 
   const items = (page?.items ?? []).map((m) => ({
@@ -38,7 +57,20 @@ export default async function ContactMessagesPage() {
           <p className="mt-2 text-[14px]">{loadError}</p>
         </div>
       ) : (
-        <ContactMessagesManager items={items} />
+        <>
+          <ContactMessagesManager
+            items={items}
+            total={page?.total ?? 0}
+            filtered={Boolean(params.status)}
+          />
+          <Pagination
+            basePath="/tickets-command/contact"
+            page={params.page}
+            limit={ADMIN_PAGE_SIZE}
+            total={page?.total ?? 0}
+            params={{ status: params.status }}
+          />
+        </>
       )}
     </div>
   );

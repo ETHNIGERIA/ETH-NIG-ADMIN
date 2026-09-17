@@ -1,6 +1,6 @@
 'use server';
 
-import { redirect } from 'next/navigation';
+import { redirect, unstable_rethrow } from 'next/navigation';
 import {
   ticketsApiDelete,
   ticketsApiPatch,
@@ -64,6 +64,7 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
       ...(allowedOrigins?.length ? { allowedOrigins } : {}),
     });
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not create event.' };
   }
 
@@ -113,6 +114,7 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
       allowedOrigins,
     });
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not update event.' };
   }
 
@@ -134,6 +136,7 @@ export async function setEventStatusAction(_prev: ActionState, formData: FormDat
       status,
     });
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not update status.' };
   }
 
@@ -149,6 +152,7 @@ export async function deleteEventAction(_prev: ActionState, formData: FormData):
   try {
     await ticketsApiDelete(`/admin/events/${eventId}`);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not delete event.' };
   }
 

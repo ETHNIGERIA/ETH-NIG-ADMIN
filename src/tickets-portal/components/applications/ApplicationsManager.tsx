@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useTransition } from 'react';
+import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronRight, Loader2, X } from 'lucide-react';
 import clsx from 'clsx';
@@ -8,14 +8,16 @@ import {
   updateInfluencerApplicationStatusAction,
   updateVolunteerApplicationStatusAction,
 } from '@/tickets-portal/actions/applications';
-import type {
-  ApplicationStatus,
-  InfluencerApplication,
-  VolunteerApplication,
+import {
+  APPLICATION_STATUSES,
+  type ApplicationStatus,
+  type InfluencerApplication,
+  type VolunteerApplication,
 } from '@/tickets-portal/types/admin-applications';
 import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
+import { StatusFilter } from '@/tickets-portal/components/ui/StatusFilter';
 
-const STATUSES: ApplicationStatus[] = ['pending', 'reviewing', 'accepted', 'rejected', 'withdrawn'];
+const STATUSES = APPLICATION_STATUSES;
 
 const STATUS_STYLES: Record<ApplicationStatus, string> = {
   pending: 'border-amber-200 bg-amber-50 text-amber-700',
@@ -46,22 +48,17 @@ function formatDate(value?: string) {
 
 type AnyApplication = VolunteerApplication | InfluencerApplication;
 
-type Props =
+type Props = { total: number; filtered: boolean } & (
   | { kind: 'volunteer'; items: VolunteerApplication[] }
-  | { kind: 'influencer'; items: InfluencerApplication[] };
+  | { kind: 'influencer'; items: InfluencerApplication[] }
+);
 
 export function ApplicationsManager(props: Props) {
   const { kind } = props;
   const items: AnyApplication[] = props.items;
   const router = useRouter();
   const toast = useToast();
-  const [statusFilter, setStatusFilter] = useState<'all' | ApplicationStatus>('all');
   const [selected, setSelected] = useState<AnyApplication | null>(null);
-
-  const filtered = useMemo(
-    () => (statusFilter === 'all' ? items : items.filter((it) => it.status === statusFilter)),
-    [items, statusFilter],
-  );
 
   const th = 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-stone-500';
   const td = 'px-4 py-3 align-top text-sm text-stone-700';
@@ -70,26 +67,15 @@ export function ApplicationsManager(props: Props) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-stone-500">
-          {filtered.length} of {items.length} {items.length === 1 ? 'application' : 'applications'}
+          {props.total} {props.total === 1 ? 'application' : 'applications'}
         </p>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as 'all' | ApplicationStatus)}
-          className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm capitalize text-stone-800 outline-none focus:border-stone-400"
-        >
-          <option value="all">All statuses</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s} className="capitalize">
-              {s}
-            </option>
-          ))}
-        </select>
+        <StatusFilter statuses={STATUSES} />
       </div>
 
       <div className="overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-sm">
-        {filtered.length === 0 ? (
+        {items.length === 0 ? (
           <p className="px-4 py-12 text-center text-sm text-stone-500">
-            {items.length === 0 ? 'No applications yet.' : 'No applications match this filter.'}
+            {props.filtered ? 'No applications match this filter.' : 'No applications yet.'}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -104,7 +90,7 @@ export function ApplicationsManager(props: Props) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {filtered.map((item) => (
+                {items.map((item) => (
                   <tr
                     key={item._id}
                     onClick={() => setSelected(item)}

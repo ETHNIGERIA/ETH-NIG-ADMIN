@@ -1,5 +1,6 @@
 'use server';
 
+import { unstable_rethrow } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import {
   ticketsApiDelete,
@@ -100,6 +101,7 @@ export async function createPromoCodeAction(
   try {
     await ticketsApiPost<AdminPromoCode, Record<string, unknown>>('/admin/promo-codes', body);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not create promo code.' };
   }
 
@@ -177,6 +179,7 @@ export async function updatePromoCodeAction(
       body,
     );
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not update promo code.' };
   }
 
@@ -194,6 +197,7 @@ export async function deletePromoCodeAction(
   try {
     await ticketsApiDelete(`/admin/promo-codes/${promoId}`);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not delete promo code.' };
   }
 

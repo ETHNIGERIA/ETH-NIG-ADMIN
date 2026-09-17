@@ -1,5 +1,6 @@
 'use server';
 
+import { unstable_rethrow } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { ticketsApiDelete, ticketsApiPatch, ticketsApiPost } from '@/tickets-portal/lib/tickets-api.server';
 import type { AdminInfluencer } from '@/tickets-portal/types/admin-influencers';
@@ -23,6 +24,7 @@ export async function createInfluencerAction(
   try {
     await ticketsApiPost<AdminInfluencer, Record<string, unknown>>('/admin/influencers', body);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not create influencer.' };
   }
 
@@ -51,6 +53,7 @@ export async function updateInfluencerAction(
   try {
     await ticketsApiPatch<AdminInfluencer, Record<string, unknown>>(`/admin/influencers/${id}`, body);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not update influencer.' };
   }
 
@@ -69,6 +72,7 @@ export async function deleteInfluencerAction(
   try {
     await ticketsApiDelete(`/admin/influencers/${id}`);
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not delete influencer.' };
   }
 

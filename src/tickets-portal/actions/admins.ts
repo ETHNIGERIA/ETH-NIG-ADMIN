@@ -1,6 +1,6 @@
 'use server';
 
-import { redirect } from 'next/navigation';
+import { redirect, unstable_rethrow } from 'next/navigation';
 import { ticketsApiPatch } from '@/tickets-portal/lib/tickets-api.server';
 import type { AdminAccount } from '@/tickets-portal/types/admin-accounts';
 
@@ -18,6 +18,7 @@ export async function deactivateAdminAction(
   try {
     await ticketsApiPatch<AdminAccount, Record<string, never>>(`/admin/admins/${adminId}/deactivate`, {});
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not deactivate admin.' };
   }
 
@@ -36,6 +37,7 @@ export async function activateAdminAction(
   try {
     await ticketsApiPatch<AdminAccount, Record<string, never>>(`/admin/admins/${adminId}/activate`, {});
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not activate admin.' };
   }
 

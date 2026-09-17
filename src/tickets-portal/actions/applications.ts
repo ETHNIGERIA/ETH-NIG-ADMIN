@@ -1,5 +1,6 @@
 'use server';
 
+import { unstable_rethrow } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { ticketsApiPatch } from '@/tickets-portal/lib/tickets-api.server';
 import type { ApplicationStatus } from '@/tickets-portal/types/admin-applications';
@@ -12,6 +13,7 @@ async function updateStatus(path: string, formData: FormData): Promise<Applicati
   try {
     await ticketsApiPatch(path, { status });
   } catch (e) {
+    unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not update application.' };
   }
   revalidatePath('/tickets-command/applications/volunteers');
