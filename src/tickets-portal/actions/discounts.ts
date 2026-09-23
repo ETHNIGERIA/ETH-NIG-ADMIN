@@ -79,7 +79,6 @@ export async function createDiscountAction(
     return { error: e instanceof Error ? e.message : 'Could not create discount.' };
   }
 
-  revalidatePath(`/tickets-command/events/${eventId}/discounts`);
   revalidatePath(`/tickets-command/events/${eventId}`);
   return { ok: true };
 }
@@ -100,7 +99,6 @@ export async function deleteDiscountAction(
   }
 
   if (eventId) {
-    revalidatePath(`/tickets-command/events/${eventId}/discounts`);
     revalidatePath(`/tickets-command/events/${eventId}`);
   }
   return { ok: true };

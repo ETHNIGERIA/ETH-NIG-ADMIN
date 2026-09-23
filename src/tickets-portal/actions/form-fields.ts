@@ -173,7 +173,7 @@ export async function commitRegistrationDraftAction(
     };
   }
 
-  redirect(`/tickets-command/events/${eventId}/fields`);
+  redirect(`/tickets-command/events/${eventId}?tab=fields`);
 }
 
 export async function updateFormFieldAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -219,7 +219,7 @@ export async function updateFormFieldAction(_prev: ActionState, formData: FormDa
     return { error: e instanceof Error ? e.message : 'Could not update field.' };
   }
 
-  redirect(`/tickets-command/events/${eventId}/fields`);
+  redirect(`/tickets-command/events/${eventId}?tab=fields`);
 }
 
 export async function deleteFormFieldAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -236,5 +236,5 @@ export async function deleteFormFieldAction(_prev: ActionState, formData: FormDa
     return { error: e instanceof Error ? e.message : 'Could not delete field.' };
   }
 
-  redirect(`/tickets-command/events/${eventId}/fields`);
+  redirect(`/tickets-command/events/${eventId}?tab=fields`);
 }

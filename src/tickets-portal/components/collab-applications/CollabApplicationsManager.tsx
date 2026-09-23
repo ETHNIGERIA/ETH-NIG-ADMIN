@@ -17,6 +17,7 @@ import {
 } from '@/tickets-portal/types/admin-collab-applications';
 import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
 import { StatusFilter } from '@/tickets-portal/components/ui/StatusFilter';
+import { EventFilter, type EventOption } from '@/tickets-portal/components/ui/EventFilter';
 
 const STATUS_STYLES: Record<CollabApplicationStatus, string> = {
   pending: 'border-amber-200 bg-amber-50 text-amber-700',
@@ -46,7 +47,8 @@ function formatDate(value?: string) {
 
 type AnyCollab = SponsorApplication | SpeakerApplication;
 
-type Props = { total: number; filtered: boolean } & (
+/** `events`: omitted hides the event filter; null means the event list failed to load. */
+type Props = { total: number; filtered: boolean; events?: EventOption[] | null } & (
   | { kind: 'sponsor'; items: SponsorApplication[] }
   | { kind: 'speaker'; items: SpeakerApplication[] }
 );
@@ -67,7 +69,7 @@ function detailLabel(kind: CollabApplicationKind, item: AnyCollab) {
 }
 
 export function CollabApplicationsManager(props: Props) {
-  const { kind, total, filtered } = props;
+  const { kind, total, filtered, events } = props;
   const items: AnyCollab[] = props.items;
   const router = useRouter();
   const toast = useToast();
@@ -83,7 +85,10 @@ export function CollabApplicationsManager(props: Props) {
         <p className="text-sm text-stone-500">
           {total} {total === 1 ? noun : `${noun}s`}
         </p>
-        <StatusFilter statuses={COLLAB_APPLICATION_STATUSES} />
+        <div className="flex flex-wrap items-center gap-2">
+          {events !== undefined ? <EventFilter events={events} /> : null}
+          <StatusFilter statuses={COLLAB_APPLICATION_STATUSES} />
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-sm">

@@ -46,7 +46,7 @@ export async function cancelRegistrationAction(
     return { error: e instanceof Error ? e.message : 'Could not cancel registration.' };
   }
 
-  redirect(`/tickets-command/events/${eventId}/registrations`);
+  redirect(`/tickets-command/events/${eventId}?tab=registrations`);
 }
 
 export async function sendPaymentReminderAction(

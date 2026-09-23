@@ -2,16 +2,17 @@ import { redirect } from 'next/navigation';
 
 export const ADMIN_PAGE_SIZE = 20;
 
-export type ListSearchParams = { page?: string; status?: string };
+export type ListSearchParams = { page?: string; status?: string; event?: string };
 
-/** Parses `?page=&status=` from the URL. Unknown statuses are dropped, not sent to the API. */
+/** Parses `?page=&status=&event=` from the URL. Unknown statuses are dropped, not sent to the API. */
 export function parseListParams<S extends string>(
   sp: ListSearchParams,
   statuses: readonly S[],
-): { page: number; status?: S } {
+): { page: number; status?: S; event?: string } {
   const page = Number.parseInt(sp.page ?? '', 10);
   const status = statuses.includes(sp.status as S) ? (sp.status as S) : undefined;
-  return { page: Number.isFinite(page) && page > 0 ? page : 1, status };
+  const event = sp.event?.trim() || undefined;
+  return { page: Number.isFinite(page) && page > 0 ? page : 1, status, event };
 }
 
 /** Builds `?a=1&b=2`, skipping empty values. */
