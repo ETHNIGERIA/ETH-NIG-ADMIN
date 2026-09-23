@@ -9,6 +9,7 @@ import {
   toQuery,
   type ListSearchParams,
 } from '@/tickets-portal/lib/list-params';
+import type { AdminEvent, Paginated } from '@/tickets-portal/types/admin-events';
 import {
   COLLAB_APPLICATION_STATUSES,
   type CollabApplicationPage,
@@ -18,18 +19,31 @@ import {
 export const dynamic = 'force-dynamic';
 
 export default async function SpeakersPage({ searchParams }: { searchParams: Promise<ListSearchParams> }) {
-  const { page, status } = parseListParams(await searchParams, COLLAB_APPLICATION_STATUSES);
+  const { page, status, event } = parseListParams(await searchParams, COLLAB_APPLICATION_STATUSES);
 
   let content: React.ReactNode;
   try {
-    const data = await ticketsApiGet<CollabApplicationPage<SpeakerApplication>>(
-      `/admin/speaker-applications${toQuery({ page, limit: ADMIN_PAGE_SIZE, status })}`,
-    );
-    redirectIfPastLastPage('/tickets-command/speakers', page, ADMIN_PAGE_SIZE, data.total, { status });
+    const [data, eventsRes] = await Promise.all([
+      ticketsApiGet<CollabApplicationPage<SpeakerApplication>>(
+        `/admin/speaker-applications${toQuery({ page, limit: ADMIN_PAGE_SIZE, status, event })}`,
+      ),
+      ticketsApiGet<Paginated<AdminEvent>>('/admin/events?page=1&limit=100').catch(() => ({ data: [] } as unknown as Paginated<AdminEvent>)),
+    ]);
+    const eventOptions = (Array.isArray(eventsRes?.data) ? eventsRes.data : []).map((ev) => ({
+      slug: ev.slug,
+      name: ev.name,
+    }));
+    redirectIfPastLastPage('/tickets-command/speakers', page, ADMIN_PAGE_SIZE, data.total, { status, event });
     content = (
       <>
-        <CollabApplicationsManager kind="speaker" items={data.items} total={data.total} filtered={Boolean(status)} />
-        <Pagination basePath="/tickets-command/speakers" page={page} limit={ADMIN_PAGE_SIZE} total={data.total} params={{ status }} />
+        <CollabApplicationsManager
+          kind="speaker"
+          items={data.items}
+          total={data.total}
+          filtered={Boolean(status || event)}
+          events={eventOptions}
+        />
+        <Pagination basePath="/tickets-command/speakers" page={page} limit={ADMIN_PAGE_SIZE} total={data.total} params={{ status, event }} />
       </>
     );
   } catch (e) {
