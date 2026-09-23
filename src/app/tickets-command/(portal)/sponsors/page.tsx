@@ -9,7 +9,7 @@ import {
   toQuery,
   type ListSearchParams,
 } from '@/tickets-portal/lib/list-params';
-import type { AdminEvent, Paginated } from '@/tickets-portal/types/admin-events';
+import { fetchEventOptions } from '@/tickets-portal/data/event-options-read';
 import {
   COLLAB_APPLICATION_STATUSES,
   type CollabApplicationPage,
@@ -23,16 +23,12 @@ export default async function SponsorsPage({ searchParams }: { searchParams: Pro
 
   let content: React.ReactNode;
   try {
-    const [data, eventsRes] = await Promise.all([
+    const [data, eventOptions] = await Promise.all([
       ticketsApiGet<CollabApplicationPage<SponsorApplication>>(
         `/admin/sponsor-applications${toQuery({ page, limit: ADMIN_PAGE_SIZE, status, event })}`,
       ),
-      ticketsApiGet<Paginated<AdminEvent>>('/admin/events?page=1&limit=100').catch(() => ({ data: [] } as unknown as Paginated<AdminEvent>)),
+      fetchEventOptions(),
     ]);
-    const eventOptions = (Array.isArray(eventsRes?.data) ? eventsRes.data : []).map((ev) => ({
-      slug: ev.slug,
-      name: ev.name,
-    }));
     redirectIfPastLastPage('/tickets-command/sponsors', page, ADMIN_PAGE_SIZE, data.total, { status, event });
     content = (
       <>

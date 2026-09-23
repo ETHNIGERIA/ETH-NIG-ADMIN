@@ -47,7 +47,8 @@ function formatDate(value?: string) {
 
 type AnyCollab = SponsorApplication | SpeakerApplication;
 
-type Props = { total: number; filtered: boolean; events?: EventOption[] } & (
+/** `events`: omitted hides the event filter; null means the event list failed to load. */
+type Props = { total: number; filtered: boolean; events?: EventOption[] | null } & (
   | { kind: 'sponsor'; items: SponsorApplication[] }
   | { kind: 'speaker'; items: SpeakerApplication[] }
 );
@@ -85,9 +86,7 @@ export function CollabApplicationsManager(props: Props) {
           {total} {total === 1 ? noun : `${noun}s`}
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          {events && events.length > 0 ? (
-            <EventFilter events={events} />
-          ) : null}
+          {events !== undefined ? <EventFilter events={events} /> : null}
           <StatusFilter statuses={COLLAB_APPLICATION_STATUSES} />
         </div>
       </div>

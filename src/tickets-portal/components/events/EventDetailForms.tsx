@@ -311,7 +311,7 @@ export function EventDetailForms({
         aside={
           <>
             <Link
-              href={`/tickets-command/events/${eventId}/fields`}
+              href={`/tickets-command/events/${eventId}?tab=fields`}
               className="text-[13px] font-medium text-stone-800 underline-offset-4 hover:underline"
             >
               Manage fields

@@ -8,6 +8,7 @@ import type { ProgramAdmission } from '@/tickets-portal/types/admin-program-admi
 import type { AdminDiscount } from '@/tickets-portal/types/admin-discounts';
 import type { AdminRegistration } from '@/tickets-portal/types/admin-registrations';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
+import { redirectIfPastLastPage } from '@/tickets-portal/lib/list-params';
 import { normalizeAdminRegistration } from '@/tickets-portal/lib/admin-registrations';
 import { formatMinorToNgn } from '@/tickets-portal/lib/format-money';
 import { EventDetailForms } from '@/tickets-portal/components/events/EventDetailForms';
@@ -20,6 +21,20 @@ const tableWrap =
 const th = 'px-4 py-3 text-left text-[12px] font-medium text-stone-400';
 const td = 'px-4 py-3 text-[14px] text-stone-700';
 const rowHover = 'transition-colors hover:bg-stone-50/90';
+
+const REG_PAGE_SIZE = 20;
+
+const TABS = [
+  { key: 'overview', label: 'Overview & Tiers' },
+  { key: 'fields', label: 'Registration Fields' },
+  { key: 'discounts', label: 'Discounts & Promo Codes' },
+  { key: 'registrations', label: 'Registrations' },
+] as const;
+type TabKey = (typeof TABS)[number]['key'];
+
+function parseTab(tab?: string): TabKey {
+  return TABS.find((t) => t.key === tab)?.key ?? 'overview';
+}
 
 function sortFormFields(fields: AdminFormField[]): AdminFormField[] {
   return [...fields].sort(
@@ -61,7 +76,7 @@ export default async function EventDetailPage({
 }) {
   const { eventId } = await params;
   const sp = (await searchParams) ?? {};
-  const activeTab = sp.tab ?? 'overview';
+  const activeTab = parseTab(sp.tab);
   const regPage = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
 
   let raw: AdminEvent;
@@ -74,43 +89,47 @@ export default async function EventDetailPage({
   const id = normalizeDocumentId(raw._id);
   const event: AdminEvent = { ...raw, _id: id };
 
-  // Fetch tiers
+  // Each tab fetches only what it renders.
   let tiers: AdminTicketTier[] = [];
-  try {
-    const p = await ticketsApiGet<Paginated<AdminTicketTier>>(
-      `/admin/events/${id}/tiers?page=1&limit=100`,
-    );
-    tiers = p.data.map((t) => ({ ...t, _id: normalizeDocumentId(t._id) }));
-  } catch {
-    tiers = [];
+  if (activeTab !== 'discounts') {
+    try {
+      const p = await ticketsApiGet<Paginated<AdminTicketTier>>(
+        `/admin/events/${id}/tiers?page=1&limit=100`,
+      );
+      tiers = p.data.map((t) => ({ ...t, _id: normalizeDocumentId(t._id) }));
+    } catch {
+      tiers = [];
+    }
   }
 
-  // Fetch form fields
   let formFields: AdminFormField[] = [];
   let formFieldsLoadError: string | null = null;
-  try {
-    const rawFields = await fetchAllEventFormFields(id);
-    formFields = sortFormFields(
-      rawFields.map((f) => ({
-        ...f,
-        _id: normalizeDocumentId(f._id),
-        eventId: normalizeDocumentId(f.eventId),
-      })),
-    );
-  } catch (e) {
-    formFieldsLoadError = e instanceof Error ? e.message : 'Could not load registration fields.';
+  if (activeTab === 'overview' || activeTab === 'fields') {
+    try {
+      const rawFields = await fetchAllEventFormFields(id);
+      formFields = sortFormFields(
+        rawFields.map((f) => ({
+          ...f,
+          _id: normalizeDocumentId(f._id),
+          eventId: normalizeDocumentId(f.eventId),
+        })),
+      );
+    } catch (e) {
+      formFieldsLoadError = e instanceof Error ? e.message : 'Could not load registration fields.';
+    }
   }
 
-  // Fetch program admission
   let programAdmission: ProgramAdmission[] = [];
   let programAdmissionLoadError: string | null = null;
-  try {
-    programAdmission = await ticketsApiGet<ProgramAdmission[]>(
-      `/admin/events/${id}/program-admission`,
-    );
-  } catch (e) {
-    programAdmissionLoadError =
-      e instanceof Error ? e.message : 'Could not load program admission.';
+  if (activeTab === 'overview') {
+    try {
+      programAdmission = await ticketsApiGet<ProgramAdmission[]>(
+        `/admin/events/${id}/program-admission`,
+      );
+    } catch (e) {
+      programAdmissionLoadError =
+        e instanceof Error ? e.message : 'Could not load program admission.';
+    }
   }
 
   // Fetch discounts if needed
@@ -139,19 +158,18 @@ export default async function EventDetailPage({
   if (activeTab === 'registrations') {
     try {
       regResult = await ticketsApiGet<Paginated<AdminRegistration>>(
-        `/admin/events/${id}/registrations?page=${regPage}&limit=20`,
+        `/admin/events/${id}/registrations?page=${regPage}&limit=${REG_PAGE_SIZE}`,
       );
     } catch (e) {
       regLoadError = e instanceof Error ? e.message : 'Could not load registrations.';
     }
+    // Outside the try: redirect() throws. Mirrors the other admin lists.
+    if (regResult) {
+      redirectIfPastLastPage(`/tickets-command/events/${id}`, regPage, REG_PAGE_SIZE, regResult.total, {
+        tab: 'registrations',
+      });
+    }
   }
-
-  const tabs = [
-    { key: 'overview', label: 'Overview & Tiers' },
-    { key: 'fields', label: 'Registration Fields' },
-    { key: 'discounts', label: 'Discounts & Promo Codes' },
-    { key: 'registrations', label: 'Registrations' },
-  ];
 
   const tierNameById = new Map(tiers.map((t) => [normalizeDocumentId(t._id), t.name]));
 
@@ -170,7 +188,7 @@ export default async function EventDetailPage({
 
       {/* Consolidated Navigation Tabs */}
       <div className="flex border-b border-stone-200 gap-6 overflow-x-auto">
-        {tabs.map((t) => {
+        {TABS.map((t) => {
           const active = activeTab === t.key;
           return (
             <Link
@@ -205,6 +223,7 @@ export default async function EventDetailPage({
         <div className="space-y-4">
           <div className="rounded-lg border border-stone-200 bg-stone-50/50 p-4 text-sm text-stone-600">
             Manage custom registration questions collected during checkout for <strong className="text-stone-900">{event.name}</strong>.
+            Global fields appear for all tiers. Tier-specific fields only appear when that tier is selected.
           </div>
           <FormFieldsManager
             eventId={id}

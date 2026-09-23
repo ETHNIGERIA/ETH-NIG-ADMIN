@@ -117,7 +117,7 @@ export default async function RegistrationDetailPage({
     <div className="space-y-8">
       <div>
         <Link
-          href={`/tickets-command/events/${eventNormalizedId}/registrations`}
+          href={`/tickets-command/events/${eventNormalizedId}?tab=registrations`}
           className="text-[14px] text-stone-600 hover:text-stone-900"
         >
           ← All registrations
