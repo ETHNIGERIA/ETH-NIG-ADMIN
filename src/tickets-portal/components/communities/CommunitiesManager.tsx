@@ -11,6 +11,7 @@ import {
 } from '@/tickets-portal/actions/communities';
 import type { AdminCommunity } from '@/tickets-portal/types/admin-communities';
 import { ConfirmDialog } from '@/tickets-portal/components/ui/ConfirmDialog';
+import { EmptyState, TableCard, tableRow, tableTd as td, tableTh as th } from '@/tickets-portal/components/ui/TableCard';
 import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
 import {
   FormModal,
@@ -131,9 +132,6 @@ export function CommunitiesManager({ communities }: { communities: AdminCommunit
     });
   };
 
-  const th = 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-stone-500';
-  const td = 'px-4 py-3 align-top text-sm text-stone-700';
-
   return (
     <div className="space-y-5">
       <ListToolbar
@@ -146,73 +144,69 @@ export function CommunitiesManager({ communities }: { communities: AdminCommunit
         }
       />
 
-      <div className="overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-sm">
-        {communities.length === 0 ? (
-          <div className="p-12 text-center text-stone-500">
-            <UsersRound className="mx-auto mb-3 h-10 w-10 text-stone-300" />
-            <p className="font-semibold text-stone-800">No communities yet</p>
-            <p className="mt-1 text-xs text-stone-400">Add a community, then give it a promo code.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px]">
-              <thead className="border-b border-stone-200/80 bg-stone-50/75">
-                <tr>
-                  <th className={th}>Name</th>
-                  <th className={`${th} hidden sm:table-cell`}>Region</th>
-                  <th className={th}>Promo codes</th>
-                  <th className={`${th} text-right`}>Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {communities.map((c) => (
-                  <tr key={c._id} className="transition-colors hover:bg-stone-50/50">
-                    <td className={td}>
-                      <p className="font-semibold text-stone-900">{c.name}</p>
-                      {c.description ? <p className="mt-0.5 line-clamp-1 text-xs text-stone-500">{c.description}</p> : null}
-                    </td>
-                    <td className={`${td} hidden text-xs text-stone-600 sm:table-cell`}>{c.region || '—'}</td>
-                    <td className={`${td} whitespace-nowrap text-xs text-stone-600`}>
-                      {c.codeCount ?? 0} {(c.codeCount ?? 0) === 1 ? 'code' : 'codes'}
-                      {(c.codeCount ?? 0) > 0 ? (
-                        <span className="text-stone-400"> · {c.activeCodeCount ?? 0} active</span>
-                      ) : null}
-                    </td>
-                    <td className={`${td} whitespace-nowrap text-right`}>
-                      <div className="inline-flex items-center gap-1">
-                        <Link
-                          href={`/tickets-command/communities/${c._id}/promo-codes`}
-                          className="mr-2 rounded-md border border-stone-200 px-2.5 py-1 text-xs font-medium text-stone-700 transition-colors hover:bg-stone-50"
-                        >
-                          Promo codes
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => setFormTarget({ mode: 'edit', community: c })}
-                          title="Edit community"
-                          aria-label={`Edit ${c.name}`}
-                          className={iconButtonClass}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTarget(c)}
-                          title="Delete community"
-                          aria-label={`Delete ${c.name}`}
-                          className={dangerIconButtonClass}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <TableCard
+        isEmpty={communities.length === 0}
+        empty={
+          <EmptyState
+            icon={UsersRound}
+            title="No communities yet"
+            hint="Add a community, then give it a promo code."
+          />
+        }
+        minWidth="min-w-[560px]"
+        head={
+          <>
+            <th className={th}>Name</th>
+            <th className={`${th} hidden sm:table-cell`}>Region</th>
+            <th className={th}>Promo codes</th>
+            <th className={`${th} text-right`}>Actions</th>
+          </>
+        }
+      >
+        {communities.map((c) => (
+          <tr key={c._id} className={tableRow}>
+            <td className={td}>
+              <p className="font-semibold text-stone-900">{c.name}</p>
+              {c.description ? <p className="mt-0.5 line-clamp-1 text-xs text-stone-500">{c.description}</p> : null}
+            </td>
+            <td className={`${td} hidden text-xs text-stone-600 sm:table-cell`}>{c.region || '—'}</td>
+            <td className={`${td} whitespace-nowrap text-xs text-stone-600`}>
+              {c.codeCount ?? 0} {(c.codeCount ?? 0) === 1 ? 'code' : 'codes'}
+              {(c.codeCount ?? 0) > 0 ? (
+                <span className="text-stone-400"> · {c.activeCodeCount ?? 0} active</span>
+              ) : null}
+            </td>
+            <td className={`${td} whitespace-nowrap text-right`}>
+              <div className="inline-flex items-center gap-1">
+                <Link
+                  href={`/tickets-command/communities/${c._id}/promo-codes`}
+                  className="mr-2 rounded-md border border-stone-200 px-2.5 py-1 text-xs font-medium text-stone-700 transition-colors hover:bg-stone-50"
+                >
+                  Promo codes
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setFormTarget({ mode: 'edit', community: c })}
+                  title="Edit community"
+                  aria-label={`Edit ${c.name}`}
+                  className={iconButtonClass}
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(c)}
+                  title="Delete community"
+                  aria-label={`Delete ${c.name}`}
+                  className={dangerIconButtonClass}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </TableCard>
 
       {formTarget && (
         <CommunityFormModal target={formTarget} onClose={() => setFormTarget(null)} onSaved={handleSaved} />

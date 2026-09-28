@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Link2, Pencil, Plus, TicketPercent, Trash2 } from 'lucide-react';
 import {
   createPromoCodeAction,
@@ -11,6 +11,7 @@ import {
 import type { AdminPromoCode } from '@/tickets-portal/types/admin-promo-codes';
 import { formatMinorToNgn } from '@/tickets-portal/lib/format-money';
 import { ConfirmDialog } from '@/tickets-portal/components/ui/ConfirmDialog';
+import { EmptyState, TableCard, tableRow, tableTd as td, tableTh as th } from '@/tickets-portal/components/ui/TableCard';
 import { EventCombobox } from '@/tickets-portal/components/ui/EventCombobox';
 import type { BuyerSite } from '@/tickets-portal/auth/server-config';
 import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
@@ -45,7 +46,7 @@ function PromoCodeFormModal({
 }: OwnerProps & {
   target: FormTarget;
   onClose: () => void;
-  onSaved: (message: string) => void;
+  onSaved: (message: string, created: boolean) => void;
 }) {
   const code = target.mode === 'edit' ? target.code : undefined;
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +65,7 @@ function PromoCodeFormModal({
           setError(res.error);
           return;
         }
-        onSaved(code ? `Promo code ${code.code} updated.` : 'Promo code created.');
+        onSaved(code ? `Promo code ${code.code} updated.` : 'Promo code created.', !code);
       } catch {
         setError(NETWORK_ERROR);
       }
@@ -180,12 +181,17 @@ export function PromoCodesManager({
   ownerKind,
   ownerId,
   buyerSite,
+  total,
 }: OwnerProps & {
+  /** One page of codes (the API paginates) */
   codes: AdminPromoCode[];
+  /** Total codes across all pages */
+  total: number;
   /** Public ticket site (server env); null when BUYER_SITE_URL is not configured */
   buyerSite: BuyerSite | null;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const toast = useToast();
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminPromoCode | null>(null);
@@ -215,9 +221,17 @@ export function PromoCodesManager({
     }
   };
 
-  const handleSaved = (message: string) => {
+  const handleSaved = (message: string, created: boolean) => {
     setFormTarget(null);
     toast.success(message);
+    // New codes sort first; from page 2+ go to page 1 so the new row is visible.
+    const params = new URLSearchParams(window.location.search);
+    if (created && params.has('page')) {
+      params.delete('page');
+      const query = params.toString();
+      router.push(`${pathname}${query ? `?${query}` : ''}`);
+      return;
+    }
     router.refresh();
   };
 
@@ -242,13 +256,10 @@ export function PromoCodesManager({
   const discountLabel = (p: AdminPromoCode) =>
     p.discountType === 'percentage' ? `${p.discountValue}% off` : `${formatMinorToNgn(p.discountValue)} off`;
 
-  const th = 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-stone-500';
-  const td = 'px-4 py-3 align-top text-sm text-stone-700';
-
   return (
     <div className="space-y-5">
       <ListToolbar
-        summary={`${codes.length} ${codes.length === 1 ? 'code' : 'codes'}`}
+        summary={`${total} ${total === 1 ? 'code' : 'codes'}`}
         action={
           <button type="button" onClick={() => setFormTarget({ mode: 'create' })} className={primaryButtonClass}>
             <Plus className="h-4 w-4" />
@@ -257,102 +268,98 @@ export function PromoCodesManager({
         }
       />
 
-      <div className="overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-sm">
-        {codes.length === 0 ? (
-          <div className="p-12 text-center text-stone-500">
-            <TicketPercent className="mx-auto mb-3 h-10 w-10 text-stone-300" />
-            <p className="font-semibold text-stone-800">No promo codes yet</p>
-            <p className="mt-1 text-xs text-stone-400">Create a code, then share it with buyers.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px]">
-              <thead className="border-b border-stone-200/80 bg-stone-50/75">
-                <tr>
-                  <th className={th}>Code</th>
-                  <th className={th}>Discount</th>
-                  {ownerKind !== 'event' ? <th className={th}>Works for</th> : null}
-                  <th className={th} title="Includes unpaid reservations">Tickets used</th>
-                  <th className={th} title="Confirmed (paid or free) tickets and revenue">Sales</th>
-                  <th className={th}>Status</th>
-                  <th className={`${th} text-right`}>Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {codes.map((p) => (
-                  <tr key={p._id} className="transition-colors hover:bg-stone-50/50">
-                    <td className={td}>
-                      <p className="font-mono text-[13px] font-semibold text-stone-900">{p.code}</p>
-                      <p className="mt-0.5 font-mono text-[11px] text-stone-400" title="Tracking reference">
-                        ref {p.trackingRef}
-                      </p>
-                    </td>
-                    <td className={`${td} whitespace-nowrap`}>{discountLabel(p)}</td>
-                    {ownerKind !== 'event' ? (
-                      <td className={`${td} max-w-[180px] truncate text-xs text-stone-600`}>{worksFor(p)}</td>
-                    ) : null}
-                    <td className={`${td} whitespace-nowrap tabular-nums text-xs`}>
-                      {p.usageCount}
-                      {p.maxUses != null ? ` / ${p.maxUses}` : ' (no limit)'}
-                    </td>
-                    <td className={`${td} whitespace-nowrap text-xs`}>
-                      <p className="tabular-nums text-stone-900">
-                        {formatMinorToNgn(p.sales?.revenueMinor ?? 0)}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-stone-500">
-                        {p.sales?.ticketsSold ?? 0} {(p.sales?.ticketsSold ?? 0) === 1 ? 'ticket' : 'tickets'} sold
-                      </p>
-                    </td>
-                    <td className={`${td} whitespace-nowrap`}>
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                          p.isActive
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                            : 'border-stone-200 bg-stone-100 text-stone-600'
-                        }`}
-                      >
-                        {p.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className={`${td} whitespace-nowrap text-right`}>
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => void copyLink(p)}
-                          disabled={linkProblem(p) != null}
-                          title={linkProblem(p) ?? (buyerSite ? 'Copy tracking link' : 'Copy tracking ref')}
-                          aria-label={`Copy link for ${p.code}`}
-                          className={`${iconButtonClass} disabled:cursor-not-allowed disabled:opacity-30`}
-                        >
-                          <Link2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setFormTarget({ mode: 'edit', code: p })}
-                          title="Edit code"
-                          aria-label={`Edit ${p.code}`}
-                          className={iconButtonClass}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTarget(p)}
-                          title="Delete code"
-                          aria-label={`Delete ${p.code}`}
-                          className={dangerIconButtonClass}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <TableCard
+        isEmpty={codes.length === 0}
+        empty={
+          <EmptyState
+            icon={TicketPercent}
+            title="No promo codes yet"
+            hint="Create a code, then share it with buyers."
+          />
+        }
+        minWidth="min-w-[820px]"
+        head={
+          <>
+            <th className={th}>Code</th>
+            <th className={th}>Discount</th>
+            {ownerKind !== 'event' ? <th className={th}>Works for</th> : null}
+            <th className={th} title="Includes unpaid reservations">Tickets used</th>
+            <th className={th} title="Confirmed (paid or free) tickets and revenue">Sales</th>
+            <th className={th}>Status</th>
+            <th className={`${th} text-right`}>Actions</th>
+          </>
+        }
+      >
+        {codes.map((p) => (
+          <tr key={p._id} className={tableRow}>
+            <td className={td}>
+              <p className="font-mono text-[13px] font-semibold text-stone-900">{p.code}</p>
+              <p className="mt-0.5 font-mono text-[11px] text-stone-400" title="Tracking reference">
+                ref {p.trackingRef}
+              </p>
+            </td>
+            <td className={`${td} whitespace-nowrap`}>{discountLabel(p)}</td>
+            {ownerKind !== 'event' ? (
+              <td className={`${td} max-w-[180px] truncate text-xs text-stone-600`}>{worksFor(p)}</td>
+            ) : null}
+            <td className={`${td} whitespace-nowrap tabular-nums text-xs`}>
+              {p.usageCount}
+              {p.maxUses != null ? ` / ${p.maxUses}` : ' (no limit)'}
+            </td>
+            <td className={`${td} whitespace-nowrap text-xs`}>
+              <p className="tabular-nums text-stone-900">
+                {formatMinorToNgn(p.sales?.revenueMinor ?? 0)}
+              </p>
+              <p className="mt-0.5 text-[11px] text-stone-500">
+                {p.sales?.ticketsSold ?? 0} {(p.sales?.ticketsSold ?? 0) === 1 ? 'ticket' : 'tickets'} sold
+              </p>
+            </td>
+            <td className={`${td} whitespace-nowrap`}>
+              <span
+                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                  p.isActive
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    : 'border-stone-200 bg-stone-100 text-stone-600'
+                }`}
+              >
+                {p.isActive ? 'Active' : 'Inactive'}
+              </span>
+            </td>
+            <td className={`${td} whitespace-nowrap text-right`}>
+              <div className="inline-flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => void copyLink(p)}
+                  disabled={linkProblem(p) != null}
+                  title={linkProblem(p) ?? (buyerSite ? 'Copy tracking link' : 'Copy tracking ref')}
+                  aria-label={`Copy link for ${p.code}`}
+                  className={`${iconButtonClass} disabled:cursor-not-allowed disabled:opacity-30`}
+                >
+                  <Link2 className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormTarget({ mode: 'edit', code: p })}
+                  title="Edit code"
+                  aria-label={`Edit ${p.code}`}
+                  className={iconButtonClass}
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(p)}
+                  title="Delete code"
+                  aria-label={`Delete ${p.code}`}
+                  className={dangerIconButtonClass}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </TableCard>
 
       {formTarget && (
         <PromoCodeFormModal

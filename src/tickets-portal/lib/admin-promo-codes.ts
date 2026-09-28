@@ -16,3 +16,14 @@ export function normalizeAdminPromoCode(raw: AdminPromoCode): AdminPromoCode {
     communityId: normalizeOptionalId(raw.communityId),
   };
 }
+
+/**
+ * Accepts both GET /admin/promo-codes shapes: the paginated object and the
+ * legacy bare array, so admin and API can be deployed in either order.
+ */
+export function toPromoCodePage(
+  raw: { data: AdminPromoCode[]; total: number } | AdminPromoCode[],
+): { codes: AdminPromoCode[]; total: number } {
+  const page = Array.isArray(raw) ? { data: raw, total: raw.length } : raw;
+  return { codes: page.data.map(normalizeAdminPromoCode), total: page.total };
+}

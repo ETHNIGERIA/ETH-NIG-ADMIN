@@ -11,6 +11,7 @@ import {
 } from '@/tickets-portal/actions/influencers';
 import type { AdminInfluencer } from '@/tickets-portal/types/admin-influencers';
 import { ConfirmDialog } from '@/tickets-portal/components/ui/ConfirmDialog';
+import { EmptyState, TableCard, tableRow, tableTd as td, tableTh as th } from '@/tickets-portal/components/ui/TableCard';
 import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
 import {
   FormModal,
@@ -136,9 +137,6 @@ export function InfluencersManager({ influencers }: { influencers: AdminInfluenc
     });
   };
 
-  const th = 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-stone-500';
-  const td = 'px-4 py-3 align-top text-sm text-stone-700';
-
   return (
     <div className="space-y-5">
       <ListToolbar
@@ -151,72 +149,66 @@ export function InfluencersManager({ influencers }: { influencers: AdminInfluenc
         }
       />
 
-      <div className="overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-sm">
-        {influencers.length === 0 ? (
-          <div className="p-12 text-center text-stone-500">
-            <Megaphone className="mx-auto mb-3 h-10 w-10 text-stone-300" />
-            <p className="font-semibold text-stone-800">No influencers yet</p>
-            <p className="mt-1 text-xs text-stone-400">
-              Add one here, or accept an influencer application under Applications.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px]">
-              <thead className="border-b border-stone-200/80 bg-stone-50/75">
-                <tr>
-                  <th className={th}>Name</th>
-                  <th className={`${th} hidden sm:table-cell`}>Email</th>
-                  <th className={th}>Promo codes</th>
-                  <th className={`${th} text-right`}>Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {influencers.map((inf) => (
-                  <tr key={inf._id} className="transition-colors hover:bg-stone-50/50">
-                    <td className={`${td} font-semibold text-stone-900`}>{inf.displayName}</td>
-                    <td className={`${td} hidden text-xs text-stone-600 sm:table-cell`}>{inf.email ?? '—'}</td>
-                    <td className={`${td} whitespace-nowrap text-xs text-stone-600`}>
-                      {inf.codeCount ?? 0} {(inf.codeCount ?? 0) === 1 ? 'code' : 'codes'}
-                      {(inf.codeCount ?? 0) > 0 ? (
-                        <span className="text-stone-400"> · {inf.activeCodeCount ?? 0} active</span>
-                      ) : null}
-                    </td>
-                    <td className={`${td} whitespace-nowrap text-right`}>
-                      <div className="inline-flex items-center gap-1">
-                        <Link
-                          href={`/tickets-command/influencers/${inf._id}/promo-codes`}
-                          className="mr-2 rounded-md border border-stone-200 px-2.5 py-1 text-xs font-medium text-stone-700 transition-colors hover:bg-stone-50"
-                        >
-                          Promo codes
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => setFormTarget({ mode: 'edit', influencer: inf })}
-                          title="Edit influencer"
-                          aria-label={`Edit ${inf.displayName}`}
-                          className={iconButtonClass}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTarget(inf)}
-                          title="Delete influencer"
-                          aria-label={`Delete ${inf.displayName}`}
-                          className={dangerIconButtonClass}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <TableCard
+        isEmpty={influencers.length === 0}
+        empty={
+          <EmptyState
+            icon={Megaphone}
+            title="No influencers yet"
+            hint="Add one here, or accept an influencer application under Applications."
+          />
+        }
+        minWidth="min-w-[560px]"
+        head={
+          <>
+            <th className={th}>Name</th>
+            <th className={`${th} hidden sm:table-cell`}>Email</th>
+            <th className={th}>Promo codes</th>
+            <th className={`${th} text-right`}>Actions</th>
+          </>
+        }
+      >
+        {influencers.map((inf) => (
+          <tr key={inf._id} className={tableRow}>
+            <td className={`${td} font-semibold text-stone-900`}>{inf.displayName}</td>
+            <td className={`${td} hidden text-xs text-stone-600 sm:table-cell`}>{inf.email ?? '—'}</td>
+            <td className={`${td} whitespace-nowrap text-xs text-stone-600`}>
+              {inf.codeCount ?? 0} {(inf.codeCount ?? 0) === 1 ? 'code' : 'codes'}
+              {(inf.codeCount ?? 0) > 0 ? (
+                <span className="text-stone-400"> · {inf.activeCodeCount ?? 0} active</span>
+              ) : null}
+            </td>
+            <td className={`${td} whitespace-nowrap text-right`}>
+              <div className="inline-flex items-center gap-1">
+                <Link
+                  href={`/tickets-command/influencers/${inf._id}/promo-codes`}
+                  className="mr-2 rounded-md border border-stone-200 px-2.5 py-1 text-xs font-medium text-stone-700 transition-colors hover:bg-stone-50"
+                >
+                  Promo codes
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setFormTarget({ mode: 'edit', influencer: inf })}
+                  title="Edit influencer"
+                  aria-label={`Edit ${inf.displayName}`}
+                  className={iconButtonClass}
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(inf)}
+                  title="Delete influencer"
+                  aria-label={`Delete ${inf.displayName}`}
+                  className={dangerIconButtonClass}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </TableCard>
 
       {formTarget && (
         <InfluencerFormModal target={formTarget} onClose={() => setFormTarget(null)} onSaved={handleSaved} />

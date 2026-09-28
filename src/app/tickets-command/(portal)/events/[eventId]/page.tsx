@@ -1,15 +1,16 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, unstable_rethrow } from 'next/navigation';
 import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
 import type { AdminEvent, Paginated } from '@/tickets-portal/types/admin-events';
 import type { AdminTicketTier } from '@/tickets-portal/types/admin-tiers';
 import type { AdminFormField } from '@/tickets-portal/types/admin-form-fields';
 import type { ProgramAdmission } from '@/tickets-portal/types/admin-program-admission';
 import type { AdminPromoCode } from '@/tickets-portal/types/admin-promo-codes';
-import { normalizeAdminPromoCode } from '@/tickets-portal/lib/admin-promo-codes';
+import { toPromoCodePage } from '@/tickets-portal/lib/admin-promo-codes';
 import type { AdminRegistration } from '@/tickets-portal/types/admin-registrations';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
-import { redirectIfPastLastPage } from '@/tickets-portal/lib/list-params';
+import { redirectIfPastLastPage, toQuery } from '@/tickets-portal/lib/list-params';
+import { Pagination } from '@/tickets-portal/components/ui/Pagination';
 import { normalizeAdminRegistration } from '@/tickets-portal/lib/admin-registrations';
 import { formatMinorToNgn } from '@/tickets-portal/lib/format-money';
 import { EventDetailForms } from '@/tickets-portal/components/events/EventDetailForms';
@@ -26,6 +27,7 @@ const td = 'px-4 py-3 text-[14px] text-stone-700';
 const rowHover = 'transition-colors hover:bg-stone-50/90';
 
 const REG_PAGE_SIZE = 20;
+const PROMO_PAGE_SIZE = 20;
 
 const TABS = [
   { key: 'overview', label: 'Overview & Tiers' },
@@ -81,7 +83,7 @@ export default async function EventDetailPage({
   const { eventId } = await params;
   const sp = (await searchParams) ?? {};
   const activeTab = parseTab(sp.tab);
-  const regPage = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
+  const listPage = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
 
   let raw: AdminEvent;
   try {
@@ -138,14 +140,23 @@ export default async function EventDetailPage({
 
   // Fetch this event's ownerless promo codes if needed (filtered server-side)
   let promoCodes: AdminPromoCode[] = [];
+  let promoTotal = 0;
   let promoCodesLoadError: string | null = null;
   if (activeTab === 'discounts') {
     try {
-      const rawCodes = await ticketsApiGet<AdminPromoCode[]>(
-        `/admin/promo-codes?eventId=${encodeURIComponent(id)}&owner=none`,
+      // `listPage` is the shared ?page= param; each tab paginates its own list.
+      const res = toPromoCodePage(
+        await ticketsApiGet<Paginated<AdminPromoCode> | AdminPromoCode[]>(
+          `/admin/promo-codes${toQuery({ eventId: id, owner: 'none', page: listPage, limit: PROMO_PAGE_SIZE })}`,
+        ),
       );
-      promoCodes = rawCodes.map(normalizeAdminPromoCode);
+      redirectIfPastLastPage(`/tickets-command/events/${id}`, listPage, PROMO_PAGE_SIZE, res.total, {
+        tab: 'discounts',
+      });
+      promoCodes = res.codes;
+      promoTotal = res.total;
     } catch (e) {
+      unstable_rethrow(e); // redirect() throws
       promoCodesLoadError = e instanceof Error ? e.message : 'Could not load promo codes.';
     }
   }
@@ -156,16 +167,14 @@ export default async function EventDetailPage({
   if (activeTab === 'registrations') {
     try {
       regResult = await ticketsApiGet<Paginated<AdminRegistration>>(
-        `/admin/events/${id}/registrations?page=${regPage}&limit=${REG_PAGE_SIZE}`,
+        `/admin/events/${id}/registrations?page=${listPage}&limit=${REG_PAGE_SIZE}`,
       );
-    } catch (e) {
-      regLoadError = e instanceof Error ? e.message : 'Could not load registrations.';
-    }
-    // Outside the try: redirect() throws. Mirrors the other admin lists.
-    if (regResult) {
-      redirectIfPastLastPage(`/tickets-command/events/${id}`, regPage, REG_PAGE_SIZE, regResult.total, {
+      redirectIfPastLastPage(`/tickets-command/events/${id}`, listPage, REG_PAGE_SIZE, regResult.total, {
         tab: 'registrations',
       });
+    } catch (e) {
+      unstable_rethrow(e); // redirect() throws
+      regLoadError = e instanceof Error ? e.message : 'Could not load registrations.';
     }
   }
 
@@ -243,9 +252,19 @@ export default async function EventDetailPage({
           ) : (
             <PromoCodesManager
               codes={promoCodes}
+              total={promoTotal}
               ownerKind="event"
               ownerId={id}
               buyerSite={getBuyerSite()}
+            />
+          )}
+          {!promoCodesLoadError && (
+            <Pagination
+              basePath={`/tickets-command/events/${id}`}
+              page={listPage}
+              limit={PROMO_PAGE_SIZE}
+              total={promoTotal}
+              params={{ tab: 'discounts' }}
             />
           )}
         </div>
@@ -324,33 +343,13 @@ export default async function EventDetailPage({
                 </table>
               </div>
 
-              {regResult.pages > 1 && (
-                <div className="flex items-center justify-between gap-4 text-[14px] text-stone-600">
-                  <span>Page {regPage} of {regResult.pages} · {regResult.total} total</span>
-                  <div className="flex gap-2">
-                    {regPage > 1 ? (
-                      <Link
-                        href={`/tickets-command/events/${id}?tab=registrations&page=${regPage - 1}`}
-                        className="rounded-md border border-stone-200 px-3 py-1.5 hover:bg-stone-50"
-                      >
-                        Previous
-                      </Link>
-                    ) : (
-                      <span className="rounded-md px-3 py-1.5 text-stone-300">Previous</span>
-                    )}
-                    {regPage < regResult.pages ? (
-                      <Link
-                        href={`/tickets-command/events/${id}?tab=registrations&page=${regPage + 1}`}
-                        className="rounded-md border border-stone-200 px-3 py-1.5 hover:bg-stone-50"
-                      >
-                        Next
-                      </Link>
-                    ) : (
-                      <span className="rounded-md px-3 py-1.5 text-stone-300">Next</span>
-                    )}
-                  </div>
-                </div>
-              )}
+              <Pagination
+                basePath={`/tickets-command/events/${id}`}
+                page={listPage}
+                limit={REG_PAGE_SIZE}
+                total={regResult.total}
+                params={{ tab: 'registrations' }}
+              />
             </div>
           ) : null}
         </div>
