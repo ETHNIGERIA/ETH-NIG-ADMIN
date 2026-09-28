@@ -1,5 +1,6 @@
 import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
 import { ApplicationsManager } from '@/tickets-portal/components/applications/ApplicationsManager';
+import { HowItWorks } from '@/tickets-portal/components/ui/HowItWorks';
 import { Pagination } from '@/tickets-portal/components/ui/Pagination';
 import { unstable_rethrow } from 'next/navigation';
 import {
@@ -26,6 +27,14 @@ export default async function InfluencerApplicationsPage({ searchParams }: { sea
     redirectIfPastLastPage('/tickets-command/applications/influencers', page, ADMIN_PAGE_SIZE, data.total, { status });
     return (
       <div className="space-y-4">
+        <HowItWorks
+          defaultOpen={false}
+          items={[
+            'Accepting an application creates an influencer from the applicant’s name and email, or links the existing influencer with that email.',
+            'After accepting, open the linked influencer to give them promo codes. Accepting does not create a code.',
+            'The applicant is emailed when you set the status to accepted or rejected.',
+          ]}
+        />
         <ApplicationsManager kind="influencer" items={data.items} total={data.total} filtered={Boolean(status)} />
         <Pagination
           basePath="/tickets-command/applications/influencers"

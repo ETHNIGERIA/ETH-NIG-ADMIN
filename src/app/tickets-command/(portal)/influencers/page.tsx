@@ -2,6 +2,7 @@ import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
 import type { AdminInfluencer } from '@/tickets-portal/types/admin-influencers';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 import { InfluencersManager } from '@/tickets-portal/components/influencers/InfluencersManager';
+import { HowItWorks } from '@/tickets-portal/components/ui/HowItWorks';
 
 export default async function InfluencersPage() {
   let influencers: AdminInfluencer[] = [];
@@ -22,9 +23,15 @@ export default async function InfluencersPage() {
       <header className="space-y-3">
         <h1 className="text-[28px] font-semibold tracking-tight text-stone-900">Influencers</h1>
         <p className="max-w-2xl text-[15px] leading-relaxed text-stone-600">
-          People who receive influencer promo codes. Open an influencer to manage their codes; those codes reference this
-          record by id.
+          People who promote the event with their own promo codes.
         </p>
+        <HowItWorks
+          items={[
+            'Add an influencer here, or accept an influencer application under Applications. Accepting creates the influencer, or links an existing one with the same email.',
+            'Open “Promo codes” to give an influencer codes. Sales made with those codes count towards them.',
+            'Influencers sign in to the influencer portal with their email to see their own sales.',
+          ]}
+        />
       </header>
 
       {loadError ? (

@@ -35,6 +35,7 @@ export type AdminOverviewResponse = {
       active: number;
       influencer: number;
       community: number;
+      event: number;
       usageCount: number;
     };
     influencerPayouts: {

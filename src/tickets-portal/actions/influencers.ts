@@ -16,9 +16,10 @@ export async function createInfluencerAction(
   const notesRaw = String(formData.get('notes') ?? '').trim();
 
   if (!displayName) return { error: 'Display name is required.' };
+  // The API requires email (portal sign-in and application matching use it).
+  if (!emailRaw) return { error: 'Email is required.' };
 
-  const body: Record<string, unknown> = { displayName };
-  if (emailRaw) body.email = emailRaw;
+  const body: Record<string, unknown> = { displayName, email: emailRaw };
   if (notesRaw) body.notes = notesRaw;
 
   try {

@@ -123,7 +123,7 @@ function EventPageNav({ eventId }: { eventId: string }) {
         href={`/tickets-command/events/${eventId}?tab=discounts`}
         className="font-medium text-stone-800 underline-offset-4 hover:underline"
       >
-        Discounts
+        Promo Codes
       </Link>
     </nav>
   );

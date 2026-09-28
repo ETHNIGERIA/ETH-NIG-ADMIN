@@ -1,187 +1,232 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useEffect, useState, useTransition } from 'react';
+import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
 import {
   createCommunityAction,
   deleteCommunityAction,
   updateCommunityAction,
-  type CommunityActionState,
 } from '@/tickets-portal/actions/communities';
 import type { AdminCommunity } from '@/tickets-portal/types/admin-communities';
+import { ConfirmDialog } from '@/tickets-portal/components/ui/ConfirmDialog';
+import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
+import {
+  FormModal,
+  FormModalActions,
+  ListToolbar,
+  NETWORK_ERROR,
+  dangerIconButtonClass,
+  formFieldClass,
+  formLabelClass,
+  iconButtonClass,
+  primaryButtonClass,
+} from '@/tickets-portal/components/ui/FormModal';
 
-const fieldClass =
-  'w-full rounded-md border border-stone-200 bg-white px-3 py-2.5 text-[15px] text-stone-900 outline-none focus:border-stone-300 focus:ring-2 focus:ring-stone-900/10';
-const labelClass = 'mb-1.5 block text-[13px] font-medium text-stone-700';
+type FormTarget = { mode: 'create' } | { mode: 'edit'; community: AdminCommunity };
 
-function ActionError({ state }: { state: CommunityActionState }) {
-  if (!state?.error) return null;
+function CommunityFormModal({
+  target,
+  onClose,
+  onSaved,
+}: {
+  target: FormTarget;
+  onClose: () => void;
+  onSaved: (message: string) => void;
+}) {
+  const community = target.mode === 'edit' ? target.community : undefined;
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    const formData = new FormData(e.currentTarget);
+    startTransition(async () => {
+      try {
+        const res = community
+          ? await updateCommunityAction(undefined, formData)
+          : await createCommunityAction(undefined, formData);
+        if (res?.error) {
+          setError(res.error);
+          return;
+        }
+        onSaved(community ? 'Community updated.' : 'Community added.');
+      } catch {
+        setError(NETWORK_ERROR);
+      }
+    });
+  };
+
   return (
-    <p className="rounded-md border border-red-200 bg-red-50/90 px-3 py-2 text-[13px] text-red-900">
-      {state.error}
-    </p>
+    <FormModal
+      title={community ? `Edit ${community.name}` : 'Add community'}
+      description="After saving, open the community's promo codes to give them a code."
+      error={error}
+      isPending={isPending}
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+        {community ? <input type="hidden" name="communityId" value={community._id} /> : null}
+        <div className="sm:col-span-2">
+          <label className={formLabelClass} htmlFor="com-name">
+            Name
+          </label>
+          <input id="com-name" name="name" required defaultValue={community?.name} className={formFieldClass} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={formLabelClass} htmlFor="com-region">
+            Region (optional)
+          </label>
+          <input id="com-region" name="region" defaultValue={community?.region ?? ''} className={formFieldClass} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={formLabelClass} htmlFor="com-description">
+            Description (optional)
+          </label>
+          <textarea
+            id="com-description"
+            name="description"
+            rows={2}
+            defaultValue={community?.description ?? ''}
+            className={formFieldClass}
+          />
+        </div>
+        <FormModalActions
+          isPending={isPending}
+          onCancel={onClose}
+          submitLabel={community ? 'Save changes' : 'Add community'}
+        />
+      </form>
+    </FormModal>
   );
 }
 
 export function CommunitiesManager({ communities }: { communities: AdminCommunity[] }) {
   const router = useRouter();
-  const [pendingDel, startDel] = useTransition();
-  const [editId, setEditId] = useState<string | null>(null);
-  const [createKey, setCreateKey] = useState(0);
+  const toast = useToast();
+  const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminCommunity | null>(null);
+  const [isDeleting, startDelete] = useTransition();
 
-  const [cState, cAction] = useActionState(createCommunityAction, undefined);
-  const [uState, uAction] = useActionState(updateCommunityAction, undefined);
+  const handleSaved = (message: string) => {
+    setFormTarget(null);
+    toast.success(message);
+    router.refresh();
+  };
 
-  useEffect(() => {
-    if (cState?.ok) {
-      setCreateKey((k) => k + 1);
+  const handleDelete = (c: AdminCommunity) => {
+    const fd = new FormData();
+    fd.set('communityId', c._id);
+    startDelete(async () => {
+      const res = await deleteCommunityAction(undefined, fd).catch(() => ({ error: NETWORK_ERROR }));
+      if (res?.error) {
+        toast.error('Could not delete community', res.error);
+        return;
+      }
+      setDeleteTarget(null);
+      toast.success('Community deleted', `"${c.name}" was removed.`);
       router.refresh();
-    }
-  }, [cState?.ok, router]);
+    });
+  };
 
-  useEffect(() => {
-    if (uState?.ok) {
-      setEditId(null);
-      router.refresh();
-    }
-  }, [uState?.ok, router]);
-
-  const editing = editId ? communities.find((x) => x._id === editId) : undefined;
-  const th = 'px-4 py-3 text-left text-[12px] font-medium text-stone-400';
-  const td = 'px-4 py-3 text-[14px] text-stone-700';
-  const wrap =
-    'overflow-x-auto overflow-hidden rounded-lg border border-stone-200/90 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]';
+  const th = 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-stone-500';
+  const td = 'px-4 py-3 align-top text-sm text-stone-700';
 
   return (
-    <div className="space-y-10">
-      {editing ? (
-        <section className="space-y-4 rounded-lg border border-stone-300 bg-stone-50/80 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-[15px] font-semibold text-stone-900">Edit {editing.name}</h2>
-            <button
-              type="button"
-              onClick={() => setEditId(null)}
-              className="text-[13px] font-medium text-stone-600 hover:text-stone-900"
-            >
-              Cancel
-            </button>
-          </div>
-          <ActionError state={uState} />
-          <form action={uAction} className="grid gap-4">
-            <input type="hidden" name="communityId" value={editing._id} />
-            <div>
-              <label className={labelClass}>Name</label>
-              <input name="name" required defaultValue={editing.name} className={fieldClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Description</label>
-              <textarea name="description" rows={2} defaultValue={editing.description ?? ''} className={fieldClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Region</label>
-              <input name="region" defaultValue={editing.region ?? ''} className={fieldClass} />
-            </div>
-            <button
-              type="submit"
-              className="w-fit rounded-md bg-stone-900 px-4 py-2.5 text-[14px] font-medium text-white hover:bg-stone-800"
-            >
-              Save
-            </button>
-          </form>
-        </section>
-      ) : null}
-
-      <section className={wrap}>
-        <table className="w-full min-w-[560px]">
-          <thead>
-            <tr className="border-b border-stone-100">
-              <th className={th}>Name</th>
-              <th className={`${th} hidden sm:table-cell`}>Region</th>
-              <th className={`${th} text-right`}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {communities.length === 0 ? (
-              <tr>
-                <td colSpan={3} className={`${td} py-14 text-center text-stone-400`}>
-                  No communities yet.
-                </td>
-              </tr>
-            ) : (
-              communities.map((c) => (
-                <tr key={c._id} className="border-b border-stone-100 last:border-0">
-                  <td className={`${td} font-medium text-stone-900`}>{c.name}</td>
-                  <td className={`${td} hidden text-[13px] text-stone-600 sm:table-cell`}>{c.region ?? '—'}</td>
-                  <td className={`${td} whitespace-nowrap text-right`}>
-                    <Link
-                      href={`/tickets-command/communities/${c._id}/promo-codes`}
-                      className="mr-3 text-[13px] font-medium text-stone-800 underline-offset-4 hover:underline"
-                    >
-                      Promo codes
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => setEditId(c._id)}
-                      className="mr-3 text-[13px] font-medium text-stone-800 underline-offset-4 hover:underline"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      disabled={pendingDel}
-                      className="text-[13px] font-medium text-red-800 underline-offset-4 hover:underline disabled:opacity-50"
-                      onClick={() => {
-                        if (!window.confirm(`Delete community “${c.name}”?`)) return;
-                        const fd = new FormData();
-                        fd.set('communityId', c._id);
-                        startDel(async () => {
-                          const r = await deleteCommunityAction(undefined, fd);
-                          if (r?.error) window.alert(r.error);
-                          else router.refresh();
-                        });
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-[15px] font-semibold text-stone-900">Add community</h2>
-        <ActionError state={cState} />
-        <form key={createKey} action={cAction} className="grid gap-4 rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
-          <div>
-            <label className={labelClass} htmlFor="com-name">
-              Name
-            </label>
-            <input id="com-name" name="name" required className={fieldClass} />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="com-desc">
-              Description (optional)
-            </label>
-            <textarea id="com-desc" name="description" rows={2} className={fieldClass} />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="com-region">
-              Region (optional)
-            </label>
-            <input id="com-region" name="region" className={fieldClass} />
-          </div>
-          <button
-            type="submit"
-            className="w-fit rounded-md bg-stone-900 px-4 py-2.5 text-[14px] font-medium text-white hover:bg-stone-800"
-          >
-            Create
+    <div className="space-y-5">
+      <ListToolbar
+        summary={`${communities.length} ${communities.length === 1 ? 'community' : 'communities'}`}
+        action={
+          <button type="button" onClick={() => setFormTarget({ mode: 'create' })} className={primaryButtonClass}>
+            <Plus className="h-4 w-4" />
+            Add community
           </button>
-        </form>
-      </section>
+        }
+      />
+
+      <div className="overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-sm">
+        {communities.length === 0 ? (
+          <div className="p-12 text-center text-stone-500">
+            <UsersRound className="mx-auto mb-3 h-10 w-10 text-stone-300" />
+            <p className="font-semibold text-stone-800">No communities yet</p>
+            <p className="mt-1 text-xs text-stone-400">Add a community, then give it a promo code.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px]">
+              <thead className="border-b border-stone-200/80 bg-stone-50/75">
+                <tr>
+                  <th className={th}>Name</th>
+                  <th className={`${th} hidden sm:table-cell`}>Region</th>
+                  <th className={`${th} text-right`}>Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {communities.map((c) => (
+                  <tr key={c._id} className="transition-colors hover:bg-stone-50/50">
+                    <td className={td}>
+                      <p className="font-semibold text-stone-900">{c.name}</p>
+                      {c.description ? <p className="mt-0.5 line-clamp-1 text-xs text-stone-500">{c.description}</p> : null}
+                    </td>
+                    <td className={`${td} hidden text-xs text-stone-600 sm:table-cell`}>{c.region || '—'}</td>
+                    <td className={`${td} whitespace-nowrap text-right`}>
+                      <div className="inline-flex items-center gap-1">
+                        <Link
+                          href={`/tickets-command/communities/${c._id}/promo-codes`}
+                          className="mr-2 rounded-md border border-stone-200 px-2.5 py-1 text-xs font-medium text-stone-700 transition-colors hover:bg-stone-50"
+                        >
+                          Promo codes
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setFormTarget({ mode: 'edit', community: c })}
+                          title="Edit community"
+                          aria-label={`Edit ${c.name}`}
+                          className={iconButtonClass}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(c)}
+                          title="Delete community"
+                          aria-label={`Delete ${c.name}`}
+                          className={dangerIconButtonClass}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {formTarget && (
+        <CommunityFormModal target={formTarget} onClose={() => setFormTarget(null)} onSaved={handleSaved} />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDialog
+          isOpen
+          isLoading={isDeleting}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => handleDelete(deleteTarget)}
+          variant="danger"
+          title="Delete community"
+          description={`Remove "${deleteTarget.name}" from the community list?`}
+          implications={[
+            'All of its promo codes are deactivated and stop working at checkout.',
+            'Past sales stay recorded against its codes.',
+          ]}
+          confirmLabel="Delete community"
+        />
+      )}
     </div>
   );
 }

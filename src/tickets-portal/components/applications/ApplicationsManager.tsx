@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronRight, Loader2, X } from 'lucide-react';
 import clsx from 'clsx';
@@ -245,11 +246,21 @@ function ApplicationDetailModal({
                   {influencer.message || '—'}
                 </p>
               </Field>
-              {influencer.influencerId ? (
-                <Field label="Linked influencer">
-                  <span className="font-mono text-xs text-stone-600">{influencer.influencerId}</span>
-                </Field>
-              ) : null}
+              <Field label="Linked influencer">
+                {influencer.influencerId ? (
+                  <Link
+                    href={`/tickets-command/influencers/${influencer.influencerId}/promo-codes`}
+                    className="text-sm font-medium text-stone-900 underline underline-offset-4 hover:text-stone-600"
+                  >
+                    Open influencer promo codes
+                  </Link>
+                ) : (
+                  <span className="text-xs text-stone-500">
+                    None yet. Accepting this application creates an influencer (or links an existing one with
+                    the same email).
+                  </span>
+                )}
+              </Field>
             </>
           )}
           <Field label="Social handles">

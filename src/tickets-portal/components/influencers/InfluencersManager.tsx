@@ -1,191 +1,236 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useEffect, useState, useTransition } from 'react';
+import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Megaphone, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   createInfluencerAction,
   deleteInfluencerAction,
   updateInfluencerAction,
-  type InfluencerActionState,
 } from '@/tickets-portal/actions/influencers';
 import type { AdminInfluencer } from '@/tickets-portal/types/admin-influencers';
+import { ConfirmDialog } from '@/tickets-portal/components/ui/ConfirmDialog';
+import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
+import {
+  FormModal,
+  FormModalActions,
+  ListToolbar,
+  NETWORK_ERROR,
+  dangerIconButtonClass,
+  formFieldClass,
+  formHintClass,
+  formLabelClass,
+  iconButtonClass,
+  primaryButtonClass,
+} from '@/tickets-portal/components/ui/FormModal';
 
-const fieldClass =
-  'w-full rounded-md border border-stone-200 bg-white px-3 py-2.5 text-[15px] text-stone-900 outline-none focus:border-stone-300 focus:ring-2 focus:ring-stone-900/10';
-const labelClass = 'mb-1.5 block text-[13px] font-medium text-stone-700';
+type FormTarget = { mode: 'create' } | { mode: 'edit'; influencer: AdminInfluencer };
 
-function ActionError({ state }: { state: InfluencerActionState }) {
-  if (!state?.error) return null;
+function InfluencerFormModal({
+  target,
+  onClose,
+  onSaved,
+}: {
+  target: FormTarget;
+  onClose: () => void;
+  onSaved: (message: string) => void;
+}) {
+  const influencer = target.mode === 'edit' ? target.influencer : undefined;
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    const formData = new FormData(e.currentTarget);
+    startTransition(async () => {
+      try {
+        const res = influencer
+          ? await updateInfluencerAction(undefined, formData)
+          : await createInfluencerAction(undefined, formData);
+        if (res?.error) {
+          setError(res.error);
+          return;
+        }
+        onSaved(influencer ? 'Influencer updated.' : 'Influencer added.');
+      } catch {
+        setError(NETWORK_ERROR);
+      }
+    });
+  };
+
   return (
-    <p className="rounded-md border border-red-200 bg-red-50/90 px-3 py-2 text-[13px] text-red-900">
-      {state.error}
-    </p>
+    <FormModal
+      title={influencer ? `Edit ${influencer.displayName}` : 'Add influencer'}
+      description="After saving, open the influencer's promo codes to give them a code."
+      error={error}
+      isPending={isPending}
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+        {influencer ? <input type="hidden" name="influencerId" value={influencer._id} /> : null}
+        <div className="sm:col-span-2">
+          <label className={formLabelClass} htmlFor="inf-name">
+            Display name
+          </label>
+          <input id="inf-name" name="displayName" required defaultValue={influencer?.displayName} className={formFieldClass} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={formLabelClass} htmlFor="inf-email">
+            Email
+          </label>
+          <input
+            id="inf-email"
+            name="email"
+            type="email"
+            required
+            defaultValue={influencer?.email ?? ''}
+            className={formFieldClass}
+          />
+          <p className={formHintClass}>
+            Used to sign in to the influencer portal and to match influencer applications. Must be unique.
+          </p>
+        </div>
+        <div className="sm:col-span-2">
+          <label className={formLabelClass} htmlFor="inf-notes">
+            Internal notes (optional)
+          </label>
+          <textarea id="inf-notes" name="notes" rows={2} defaultValue={influencer?.notes ?? ''} className={formFieldClass} />
+        </div>
+        <FormModalActions
+          isPending={isPending}
+          onCancel={onClose}
+          submitLabel={influencer ? 'Save changes' : 'Add influencer'}
+        />
+      </form>
+    </FormModal>
   );
 }
 
 export function InfluencersManager({ influencers }: { influencers: AdminInfluencer[] }) {
   const router = useRouter();
-  const [pendingDel, startDel] = useTransition();
-  const [editId, setEditId] = useState<string | null>(null);
-  const [createKey, setCreateKey] = useState(0);
+  const toast = useToast();
+  const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminInfluencer | null>(null);
+  const [isDeleting, startDelete] = useTransition();
 
-  const [cState, cAction] = useActionState(createInfluencerAction, undefined);
-  const [uState, uAction] = useActionState(updateInfluencerAction, undefined);
+  const handleSaved = (message: string) => {
+    setFormTarget(null);
+    toast.success(message);
+    router.refresh();
+  };
 
-  useEffect(() => {
-    if (cState?.ok) {
-      setCreateKey((k) => k + 1);
+  const handleDelete = (inf: AdminInfluencer) => {
+    const fd = new FormData();
+    fd.set('influencerId', inf._id);
+    startDelete(async () => {
+      const res = await deleteInfluencerAction(undefined, fd).catch(() => ({ error: NETWORK_ERROR }));
+      if (res?.error) {
+        toast.error('Could not delete influencer', res.error);
+        return;
+      }
+      setDeleteTarget(null);
+      toast.success('Influencer deleted', `"${inf.displayName}" was removed.`);
       router.refresh();
-    }
-  }, [cState?.ok, router]);
+    });
+  };
 
-  useEffect(() => {
-    if (uState?.ok) {
-      setEditId(null);
-      router.refresh();
-    }
-  }, [uState?.ok, router]);
-
-  const editing = editId ? influencers.find((x) => x._id === editId) : undefined;
-  const th = 'px-4 py-3 text-left text-[12px] font-medium text-stone-400';
-  const td = 'px-4 py-3 text-[14px] text-stone-700';
-  const wrap =
-    'overflow-x-auto overflow-hidden rounded-lg border border-stone-200/90 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]';
+  const th = 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-stone-500';
+  const td = 'px-4 py-3 align-top text-sm text-stone-700';
 
   return (
-    <div className="space-y-10">
-      {editing ? (
-        <section className="space-y-4 rounded-lg border border-stone-300 bg-stone-50/80 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-[15px] font-semibold text-stone-900">Edit {editing.displayName}</h2>
-            <button
-              type="button"
-              onClick={() => setEditId(null)}
-              className="text-[13px] font-medium text-stone-600 hover:text-stone-900"
-            >
-              Cancel
-            </button>
-          </div>
-          <ActionError state={uState} />
-          <form action={uAction} className="grid gap-4 sm:grid-cols-2">
-            <input type="hidden" name="influencerId" value={editing._id} />
-            <div className="sm:col-span-2">
-              <label className={labelClass}>Display name</label>
-              <input name="displayName" required defaultValue={editing.displayName} className={fieldClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Email</label>
-              <input name="email" type="email" defaultValue={editing.email ?? ''} className={fieldClass} />
-            </div>
-            <div className="sm:col-span-2">
-              <label className={labelClass}>Notes</label>
-              <textarea name="notes" rows={2} defaultValue={editing.notes ?? ''} className={fieldClass} />
-            </div>
-            <div className="sm:col-span-2">
-              <button
-                type="submit"
-                className="rounded-md bg-stone-900 px-4 py-2.5 text-[14px] font-medium text-white hover:bg-stone-800"
-              >
-                Save
-              </button>
-            </div>
-          </form>
-        </section>
-      ) : null}
+    <div className="space-y-5">
+      <ListToolbar
+        summary={`${influencers.length} ${influencers.length === 1 ? 'influencer' : 'influencers'}`}
+        action={
+          <button type="button" onClick={() => setFormTarget({ mode: 'create' })} className={primaryButtonClass}>
+            <Plus className="h-4 w-4" />
+            Add influencer
+          </button>
+        }
+      />
 
-      <section className={wrap}>
-        <table className="w-full min-w-[560px]">
-          <thead>
-            <tr className="border-b border-stone-100">
-              <th className={th}>Name</th>
-              <th className={`${th} hidden sm:table-cell`}>Email</th>
-              <th className={`${th} text-right`}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {influencers.length === 0 ? (
-              <tr>
-                <td colSpan={3} className={`${td} py-14 text-center text-stone-400`}>
-                  No influencers yet.
-                </td>
-              </tr>
-            ) : (
-              influencers.map((inf) => (
-                <tr key={inf._id} className="border-b border-stone-100 last:border-0">
-                  <td className={`${td} font-medium text-stone-900`}>{inf.displayName}</td>
-                  <td className={`${td} hidden text-[13px] text-stone-600 sm:table-cell`}>{inf.email ?? '—'}</td>
-                  <td className={`${td} whitespace-nowrap text-right`}>
-                    <Link
-                      href={`/tickets-command/influencers/${inf._id}/promo-codes`}
-                      className="mr-3 text-[13px] font-medium text-stone-800 underline-offset-4 hover:underline"
-                    >
-                      Promo codes
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => setEditId(inf._id)}
-                      className="mr-3 text-[13px] font-medium text-stone-800 underline-offset-4 hover:underline"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      disabled={pendingDel}
-                      className="text-[13px] font-medium text-red-800 underline-offset-4 hover:underline disabled:opacity-50"
-                      onClick={() => {
-                        if (!window.confirm(`Delete influencer “${inf.displayName}”?`)) return;
-                        const fd = new FormData();
-                        fd.set('influencerId', inf._id);
-                        startDel(async () => {
-                          const r = await deleteInfluencerAction(undefined, fd);
-                          if (r?.error) window.alert(r.error);
-                          else router.refresh();
-                        });
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </td>
+      <div className="overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-sm">
+        {influencers.length === 0 ? (
+          <div className="p-12 text-center text-stone-500">
+            <Megaphone className="mx-auto mb-3 h-10 w-10 text-stone-300" />
+            <p className="font-semibold text-stone-800">No influencers yet</p>
+            <p className="mt-1 text-xs text-stone-400">
+              Add one here, or accept an influencer application under Applications.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px]">
+              <thead className="border-b border-stone-200/80 bg-stone-50/75">
+                <tr>
+                  <th className={th}>Name</th>
+                  <th className={`${th} hidden sm:table-cell`}>Email</th>
+                  <th className={`${th} text-right`}>Actions</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </section>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {influencers.map((inf) => (
+                  <tr key={inf._id} className="transition-colors hover:bg-stone-50/50">
+                    <td className={`${td} font-semibold text-stone-900`}>{inf.displayName}</td>
+                    <td className={`${td} hidden text-xs text-stone-600 sm:table-cell`}>{inf.email ?? '—'}</td>
+                    <td className={`${td} whitespace-nowrap text-right`}>
+                      <div className="inline-flex items-center gap-1">
+                        <Link
+                          href={`/tickets-command/influencers/${inf._id}/promo-codes`}
+                          className="mr-2 rounded-md border border-stone-200 px-2.5 py-1 text-xs font-medium text-stone-700 transition-colors hover:bg-stone-50"
+                        >
+                          Promo codes
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setFormTarget({ mode: 'edit', influencer: inf })}
+                          title="Edit influencer"
+                          aria-label={`Edit ${inf.displayName}`}
+                          className={iconButtonClass}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(inf)}
+                          title="Delete influencer"
+                          aria-label={`Delete ${inf.displayName}`}
+                          className={dangerIconButtonClass}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-      <section className="space-y-4">
-        <h2 className="text-[15px] font-semibold text-stone-900">Add influencer</h2>
-        <ActionError state={cState} />
-        <form key={createKey} action={cAction} className="grid gap-4 rounded-lg border border-stone-200 bg-white p-5 shadow-sm sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className={labelClass} htmlFor="inf-name">
-              Display name
-            </label>
-            <input id="inf-name" name="displayName" required className={fieldClass} />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="inf-email">
-              Email (optional)
-            </label>
-            <input id="inf-email" name="email" type="email" className={fieldClass} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={labelClass} htmlFor="inf-notes">
-              Notes (optional)
-            </label>
-            <textarea id="inf-notes" name="notes" rows={2} className={fieldClass} />
-          </div>
-          <div className="sm:col-span-2">
-            <button
-              type="submit"
-              className="rounded-md bg-stone-900 px-4 py-2.5 text-[14px] font-medium text-white hover:bg-stone-800"
-            >
-              Create
-            </button>
-          </div>
-        </form>
-      </section>
+      {formTarget && (
+        <InfluencerFormModal target={formTarget} onClose={() => setFormTarget(null)} onSaved={handleSaved} />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDialog
+          isOpen
+          isLoading={isDeleting}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => handleDelete(deleteTarget)}
+          variant="danger"
+          title="Delete influencer"
+          description={`Remove "${deleteTarget.displayName}" from the influencer list?`}
+          implications={[
+            'All of their promo codes are deactivated and stop working at checkout.',
+            'Past sales stay recorded against their codes.',
+          ]}
+          confirmLabel="Delete influencer"
+        />
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
 import type { AdminCommunity } from '@/tickets-portal/types/admin-communities';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 import { CommunitiesManager } from '@/tickets-portal/components/communities/CommunitiesManager';
+import { HowItWorks } from '@/tickets-portal/components/ui/HowItWorks';
 
 export default async function CommunitiesPage() {
   let communities: AdminCommunity[] = [];
@@ -22,8 +23,14 @@ export default async function CommunitiesPage() {
       <header className="space-y-3">
         <h1 className="text-[28px] font-semibold tracking-tight text-stone-900">Communities</h1>
         <p className="max-w-2xl text-[15px] leading-relaxed text-stone-600">
-          Real-world groups that receive community promo codes (fixed discount). Codes reference this record by id.
+          Groups (meetups, clubs, partner communities) that share their own promo codes with members.
         </p>
+        <HowItWorks
+          items={[
+            'Add a community, then open “Promo codes” to give it codes.',
+            'Sales made with a community’s codes count towards that community. Communities do not get payouts.',
+          ]}
+        />
       </header>
 
       {loadError ? (

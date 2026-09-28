@@ -7,6 +7,7 @@ import type { AdminPromoCode } from '@/tickets-portal/types/admin-promo-codes';
 import { normalizeAdminPromoCode } from '@/tickets-portal/lib/admin-promo-codes';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 import { PromoCodesManager } from '@/tickets-portal/components/promotions/PromoCodesManager';
+import { PromoCodesHowItWorks } from '@/tickets-portal/components/promotions/PromoCodesHowItWorks';
 
 export default async function CommunityPromoCodesPage({
   params,
@@ -51,6 +52,7 @@ export default async function CommunityPromoCodesPage({
           </Link>
         </div>
         <h1 className="text-[28px] font-semibold tracking-tight text-stone-900">Promo codes — {community.name}</h1>
+        <PromoCodesHowItWorks owner="community" />
       </header>
 
       {loadError ? (

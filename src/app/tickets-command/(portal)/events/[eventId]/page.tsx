@@ -5,7 +5,8 @@ import type { AdminEvent, Paginated } from '@/tickets-portal/types/admin-events'
 import type { AdminTicketTier } from '@/tickets-portal/types/admin-tiers';
 import type { AdminFormField } from '@/tickets-portal/types/admin-form-fields';
 import type { ProgramAdmission } from '@/tickets-portal/types/admin-program-admission';
-import type { AdminDiscount } from '@/tickets-portal/types/admin-discounts';
+import type { AdminPromoCode } from '@/tickets-portal/types/admin-promo-codes';
+import { normalizeAdminPromoCode } from '@/tickets-portal/lib/admin-promo-codes';
 import type { AdminRegistration } from '@/tickets-portal/types/admin-registrations';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 import { redirectIfPastLastPage } from '@/tickets-portal/lib/list-params';
@@ -13,7 +14,8 @@ import { normalizeAdminRegistration } from '@/tickets-portal/lib/admin-registrat
 import { formatMinorToNgn } from '@/tickets-portal/lib/format-money';
 import { EventDetailForms } from '@/tickets-portal/components/events/EventDetailForms';
 import { FormFieldsManager } from '@/tickets-portal/components/events/FormFieldsManager';
-import { EventDiscountsManager } from '@/tickets-portal/components/discounts/EventDiscountsManager';
+import { PromoCodesManager } from '@/tickets-portal/components/promotions/PromoCodesManager';
+import { PromoCodesHowItWorks } from '@/tickets-portal/components/promotions/PromoCodesHowItWorks';
 import { fetchAllEventFormFields } from '@/tickets-portal/data/event-form-fields-read';
 
 const tableWrap =
@@ -27,7 +29,8 @@ const REG_PAGE_SIZE = 20;
 const TABS = [
   { key: 'overview', label: 'Overview & Tiers' },
   { key: 'fields', label: 'Registration Fields' },
-  { key: 'discounts', label: 'Discounts & Promo Codes' },
+  // Key kept as 'discounts' so the legacy /discounts redirect and old links still work.
+  { key: 'discounts', label: 'Promo Codes' },
   { key: 'registrations', label: 'Registrations' },
 ] as const;
 type TabKey = (typeof TABS)[number]['key'];
@@ -132,23 +135,17 @@ export default async function EventDetailPage({
     }
   }
 
-  // Fetch discounts if needed
-  let discounts: AdminDiscount[] = [];
-  let discountsLoadError: string | null = null;
+  // Fetch this event's ownerless promo codes if needed (filtered server-side)
+  let promoCodes: AdminPromoCode[] = [];
+  let promoCodesLoadError: string | null = null;
   if (activeTab === 'discounts') {
     try {
-      const rawDiscounts = await ticketsApiGet<AdminDiscount[]>(
-        `/admin/discounts?eventId=${encodeURIComponent(id)}`,
+      const rawCodes = await ticketsApiGet<AdminPromoCode[]>(
+        `/admin/promo-codes?eventId=${encodeURIComponent(id)}&owner=none`,
       );
-      discounts = rawDiscounts.map((d) => ({
-        ...d,
-        _id: normalizeDocumentId(d._id),
-        eventId: d.eventId != null ? normalizeDocumentId(String(d.eventId)) : d.eventId,
-        validFrom: typeof d.validFrom === 'string' ? d.validFrom : new Date(d.validFrom).toISOString(),
-        validUntil: typeof d.validUntil === 'string' ? d.validUntil : new Date(d.validUntil).toISOString(),
-      }));
+      promoCodes = rawCodes.map(normalizeAdminPromoCode);
     } catch (e) {
-      discountsLoadError = e instanceof Error ? e.message : 'Could not load discounts.';
+      promoCodesLoadError = e instanceof Error ? e.message : 'Could not load promo codes.';
     }
   }
 
@@ -236,16 +233,19 @@ export default async function EventDetailPage({
 
       {activeTab === 'discounts' && (
         <div className="space-y-4">
-          <div className="rounded-lg border border-stone-200 bg-stone-50/50 p-4 text-sm text-stone-600">
-            Create and manage promotional discount codes for <strong className="text-stone-900">{event.name}</strong>.
-          </div>
-          {discountsLoadError ? (
+          <PromoCodesHowItWorks owner="event" />
+          {promoCodesLoadError ? (
             <div className="rounded-lg border border-red-200 bg-red-50/90 px-6 py-5 text-red-900">
-              <p className="font-semibold">Could not load discounts</p>
-              <p className="mt-2 text-[14px]">{discountsLoadError}</p>
+              <p className="font-semibold">Could not load promo codes</p>
+              <p className="mt-2 text-[14px]">{promoCodesLoadError}</p>
             </div>
           ) : (
-            <EventDiscountsManager eventId={id} eventName={event.name} discounts={discounts} />
+            <PromoCodesManager
+              codes={promoCodes}
+              events={[{ id, name: event.name }]}
+              ownerKind="event"
+              ownerId={id}
+            />
           )}
         </div>
       )}
