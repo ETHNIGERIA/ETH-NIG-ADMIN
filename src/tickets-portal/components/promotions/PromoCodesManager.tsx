@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useMemo, useState, useTransition } from 'react';
+import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Plus, TicketPercent, Trash2 } from 'lucide-react';
+import { Link2, Pencil, Plus, TicketPercent, Trash2 } from 'lucide-react';
 import {
   createPromoCodeAction,
   deletePromoCodeAction,
@@ -11,6 +11,8 @@ import {
 import type { AdminPromoCode } from '@/tickets-portal/types/admin-promo-codes';
 import { formatMinorToNgn } from '@/tickets-portal/lib/format-money';
 import { ConfirmDialog } from '@/tickets-portal/components/ui/ConfirmDialog';
+import { EventCombobox } from '@/tickets-portal/components/ui/EventCombobox';
+import type { BuyerSite } from '@/tickets-portal/auth/server-config';
 import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
 import {
   FormModal,
@@ -29,7 +31,6 @@ type OwnerKind = 'influencer' | 'community' | 'event';
 type FormTarget = { mode: 'create' } | { mode: 'edit'; code: AdminPromoCode };
 
 type OwnerProps = {
-  events: Array<{ id: string; name: string }>;
   /** 'event' = ownerless code locked to the event `ownerId` */
   ownerKind: OwnerKind;
   ownerId: string;
@@ -37,7 +38,6 @@ type OwnerProps = {
 
 function PromoCodeFormModal({
   target,
-  events,
   ownerKind,
   ownerId,
   onClose,
@@ -156,19 +156,11 @@ function PromoCodeFormModal({
             <label className={formLabelClass} htmlFor="promo-event">
               Works for
             </label>
-            <select id="promo-event" name="eventId" defaultValue={code?.eventId ?? ''} className={formFieldClass}>
-              <option value="">All events</option>
-              {/* Keep the current scope selectable even if its event is outside the loaded list,
-                  otherwise saving would silently make the code global. */}
-              {code?.eventId && !events.some((e) => e.id === code.eventId) ? (
-                <option value={code.eventId}>Current event (not in list) only</option>
-              ) : null}
-              {events.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name} only
-                </option>
-              ))}
-            </select>
+            <EventCombobox
+              name="eventId"
+              inputId="promo-event"
+              initial={code?.eventId ? { id: code.eventId, name: code.eventName ?? 'Current event' } : null}
+            />
           </div>
         )}
 
@@ -183,14 +175,45 @@ function PromoCodeFormModal({
   );
 }
 
-export function PromoCodesManager({ codes, events, ownerKind, ownerId }: OwnerProps & { codes: AdminPromoCode[] }) {
+export function PromoCodesManager({
+  codes,
+  ownerKind,
+  ownerId,
+  buyerSite,
+}: OwnerProps & {
+  codes: AdminPromoCode[];
+  /** Public ticket site (server env); null when BUYER_SITE_URL is not configured */
+  buyerSite: BuyerSite | null;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminPromoCode | null>(null);
   const [isDeleting, startDelete] = useTransition();
 
-  const eventNameById = useMemo(() => new Map(events.map((e) => [e.id, e.name])), [events]);
+  // The ticket site sells one event, so a link only helps for codes valid there.
+  const linkProblem = (p: AdminPromoCode): string | null => {
+    if (!buyerSite) return null; // falls back to copying the bare ref
+    if (!p.eventId) return null;
+    if (buyerSite.eventSlug && p.eventSlug === buyerSite.eventSlug) return null;
+    return buyerSite.eventSlug
+      ? `The ticket site sells "${buyerSite.eventSlug}" only; share this code instead of a link.`
+      : 'Set BUYER_SITE_EVENT_SLUG to enable links for event-scoped codes; share the code instead.';
+  };
+
+  const copyLink = async (p: AdminPromoCode) => {
+    const ref = encodeURIComponent(p.trackingRef);
+    const text = buyerSite ? `${buyerSite.url}/tickets?ref=${ref}` : p.trackingRef;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(
+        buyerSite ? 'Link copied' : 'Tracking ref copied',
+        buyerSite ? text : 'Set BUYER_SITE_URL on the admin server to copy full links.',
+      );
+    } catch {
+      toast.error('Could not copy', text);
+    }
+  };
 
   const handleSaved = (message: string) => {
     setFormTarget(null);
@@ -215,8 +238,7 @@ export function PromoCodesManager({ codes, events, ownerKind, ownerId }: OwnerPr
     });
   };
 
-  const worksFor = (p: AdminPromoCode) =>
-    p.eventId ? eventNameById.get(p.eventId) ?? 'One event' : 'All events';
+  const worksFor = (p: AdminPromoCode) => (p.eventId ? p.eventName ?? 'One event' : 'All events');
   const discountLabel = (p: AdminPromoCode) =>
     p.discountType === 'percentage' ? `${p.discountValue}% off` : `${formatMinorToNgn(p.discountValue)} off`;
 
@@ -244,13 +266,14 @@ export function PromoCodesManager({ codes, events, ownerKind, ownerId }: OwnerPr
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px]">
+            <table className="w-full min-w-[820px]">
               <thead className="border-b border-stone-200/80 bg-stone-50/75">
                 <tr>
                   <th className={th}>Code</th>
                   <th className={th}>Discount</th>
                   {ownerKind !== 'event' ? <th className={th}>Works for</th> : null}
-                  <th className={th}>Tickets used</th>
+                  <th className={th} title="Includes unpaid reservations">Tickets used</th>
+                  <th className={th} title="Confirmed (paid or free) tickets and revenue">Sales</th>
                   <th className={th}>Status</th>
                   <th className={`${th} text-right`}>Actions</th>
                 </tr>
@@ -272,6 +295,14 @@ export function PromoCodesManager({ codes, events, ownerKind, ownerId }: OwnerPr
                       {p.usageCount}
                       {p.maxUses != null ? ` / ${p.maxUses}` : ' (no limit)'}
                     </td>
+                    <td className={`${td} whitespace-nowrap text-xs`}>
+                      <p className="tabular-nums text-stone-900">
+                        {formatMinorToNgn(p.sales?.revenueMinor ?? 0)}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-stone-500">
+                        {p.sales?.ticketsSold ?? 0} {(p.sales?.ticketsSold ?? 0) === 1 ? 'ticket' : 'tickets'} sold
+                      </p>
+                    </td>
                     <td className={`${td} whitespace-nowrap`}>
                       <span
                         className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
@@ -285,6 +316,16 @@ export function PromoCodesManager({ codes, events, ownerKind, ownerId }: OwnerPr
                     </td>
                     <td className={`${td} whitespace-nowrap text-right`}>
                       <div className="inline-flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => void copyLink(p)}
+                          disabled={linkProblem(p) != null}
+                          title={linkProblem(p) ?? (buyerSite ? 'Copy tracking link' : 'Copy tracking ref')}
+                          aria-label={`Copy link for ${p.code}`}
+                          className={`${iconButtonClass} disabled:cursor-not-allowed disabled:opacity-30`}
+                        >
+                          <Link2 className="h-4 w-4" />
+                        </button>
                         <button
                           type="button"
                           onClick={() => setFormTarget({ mode: 'edit', code: p })}
@@ -316,7 +357,6 @@ export function PromoCodesManager({ codes, events, ownerKind, ownerId }: OwnerPr
       {formTarget && (
         <PromoCodeFormModal
           target={formTarget}
-          events={events}
           ownerKind={ownerKind}
           ownerId={ownerId}
           onClose={() => setFormTarget(null)}

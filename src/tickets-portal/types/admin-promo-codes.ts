@@ -17,6 +17,12 @@ export type AdminPromoCode = {
   type?: 'influencer' | 'community';
   /** @deprecated legacy rows only */
   assignedTo?: string;
+  /** Confirmed tickets and revenue (minor units) from registrations using this code */
+  sales?: { ticketsSold: number; revenueMinor: number };
+  /** Name of the scoped event (null for global codes) */
+  eventName?: string | null;
+  /** Slug of the scoped event (null for global codes) */
+  eventSlug?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };

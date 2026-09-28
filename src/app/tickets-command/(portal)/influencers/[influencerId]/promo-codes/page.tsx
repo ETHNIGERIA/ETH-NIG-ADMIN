@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
-import type { AdminEvent, Paginated } from '@/tickets-portal/types/admin-events';
 import type { AdminInfluencer } from '@/tickets-portal/types/admin-influencers';
 import type { AdminPromoCode } from '@/tickets-portal/types/admin-promo-codes';
 import { normalizeAdminPromoCode } from '@/tickets-portal/lib/admin-promo-codes';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
+import { getBuyerSite } from '@/tickets-portal/auth/server-config';
 import { PromoCodesManager } from '@/tickets-portal/components/promotions/PromoCodesManager';
 import { PromoCodesHowItWorks } from '@/tickets-portal/components/promotions/PromoCodesHowItWorks';
 
@@ -26,7 +26,6 @@ export default async function InfluencerPromoCodesPage({
   }
 
   let codes: AdminPromoCode[] = [];
-  let events: Array<{ id: string; name: string }> = [];
   let loadError: string | null = null;
 
   try {
@@ -34,11 +33,6 @@ export default async function InfluencerPromoCodesPage({
       `/admin/promo-codes?influencerId=${encodeURIComponent(id)}`,
     );
     codes = rawCodes.map(normalizeAdminPromoCode);
-    const ep = await ticketsApiGet<Paginated<AdminEvent>>(`/admin/events?page=1&limit=100`);
-    events = ep.data.map((e) => ({
-      id: normalizeDocumentId(e._id),
-      name: e.name,
-    }));
   } catch (e) {
     loadError = e instanceof Error ? e.message : 'Could not load promo codes.';
   }
@@ -63,7 +57,7 @@ export default async function InfluencerPromoCodesPage({
           <p className="mt-2 text-[14px]">{loadError}</p>
         </div>
       ) : (
-        <PromoCodesManager codes={codes} events={events} ownerKind="influencer" ownerId={id} />
+        <PromoCodesManager codes={codes} ownerKind="influencer" ownerId={id} buyerSite={getBuyerSite()} />
       )}
     </div>
   );

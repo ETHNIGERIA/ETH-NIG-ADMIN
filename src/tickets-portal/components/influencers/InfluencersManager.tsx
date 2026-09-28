@@ -167,6 +167,7 @@ export function InfluencersManager({ influencers }: { influencers: AdminInfluenc
                 <tr>
                   <th className={th}>Name</th>
                   <th className={`${th} hidden sm:table-cell`}>Email</th>
+                  <th className={th}>Promo codes</th>
                   <th className={`${th} text-right`}>Actions</th>
                 </tr>
               </thead>
@@ -175,6 +176,12 @@ export function InfluencersManager({ influencers }: { influencers: AdminInfluenc
                   <tr key={inf._id} className="transition-colors hover:bg-stone-50/50">
                     <td className={`${td} font-semibold text-stone-900`}>{inf.displayName}</td>
                     <td className={`${td} hidden text-xs text-stone-600 sm:table-cell`}>{inf.email ?? '—'}</td>
+                    <td className={`${td} whitespace-nowrap text-xs text-stone-600`}>
+                      {inf.codeCount ?? 0} {(inf.codeCount ?? 0) === 1 ? 'code' : 'codes'}
+                      {(inf.codeCount ?? 0) > 0 ? (
+                        <span className="text-stone-400"> · {inf.activeCodeCount ?? 0} active</span>
+                      ) : null}
+                    </td>
                     <td className={`${td} whitespace-nowrap text-right`}>
                       <div className="inline-flex items-center gap-1">
                         <Link

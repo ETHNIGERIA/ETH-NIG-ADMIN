@@ -160,6 +160,7 @@ export function CommunitiesManager({ communities }: { communities: AdminCommunit
                 <tr>
                   <th className={th}>Name</th>
                   <th className={`${th} hidden sm:table-cell`}>Region</th>
+                  <th className={th}>Promo codes</th>
                   <th className={`${th} text-right`}>Actions</th>
                 </tr>
               </thead>
@@ -171,6 +172,12 @@ export function CommunitiesManager({ communities }: { communities: AdminCommunit
                       {c.description ? <p className="mt-0.5 line-clamp-1 text-xs text-stone-500">{c.description}</p> : null}
                     </td>
                     <td className={`${td} hidden text-xs text-stone-600 sm:table-cell`}>{c.region || '—'}</td>
+                    <td className={`${td} whitespace-nowrap text-xs text-stone-600`}>
+                      {c.codeCount ?? 0} {(c.codeCount ?? 0) === 1 ? 'code' : 'codes'}
+                      {(c.codeCount ?? 0) > 0 ? (
+                        <span className="text-stone-400"> · {c.activeCodeCount ?? 0} active</span>
+                      ) : null}
+                    </td>
                     <td className={`${td} whitespace-nowrap text-right`}>
                       <div className="inline-flex items-center gap-1">
                         <Link

@@ -19,6 +19,8 @@ export function PromoCodesHowItWorks({ owner }: { owner: 'influencer' | 'communi
               '"Works for" limits a code to one event; "All events" works everywhere. If the same code exists for one event and for all events, the event-specific one wins at that event.',
             ]),
         'Max tickets counts tickets, not orders. Inactive and deleted codes are rejected at checkout.',
+        '“Tickets used” includes unpaid reservations (released if payment expires). “Sales” counts confirmed tickets and the amount actually paid.',
+        'The link button copies a tracking link to the ticket site (…/tickets?ref=…): buyers who open it get the discount without typing the code, and the sale is attributed to it. The ticket site sells one event, so links are only offered for codes valid there; share other codes as text.',
         ...(owner === 'event' ? [] : ['A code’s owner cannot be changed. To move it, deactivate it and create a new code.']),
       ]}
     />

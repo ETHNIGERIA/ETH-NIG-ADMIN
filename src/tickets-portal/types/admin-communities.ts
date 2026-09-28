@@ -3,6 +3,8 @@ export type AdminCommunity = {
   name: string;
   description?: string;
   region?: string;
+  codeCount?: number;
+  activeCodeCount?: number;
   createdAt?: string;
   updatedAt?: string;
 };

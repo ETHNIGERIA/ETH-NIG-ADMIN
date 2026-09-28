@@ -14,6 +14,7 @@ import { normalizeAdminRegistration } from '@/tickets-portal/lib/admin-registrat
 import { formatMinorToNgn } from '@/tickets-portal/lib/format-money';
 import { EventDetailForms } from '@/tickets-portal/components/events/EventDetailForms';
 import { FormFieldsManager } from '@/tickets-portal/components/events/FormFieldsManager';
+import { getBuyerSite } from '@/tickets-portal/auth/server-config';
 import { PromoCodesManager } from '@/tickets-portal/components/promotions/PromoCodesManager';
 import { PromoCodesHowItWorks } from '@/tickets-portal/components/promotions/PromoCodesHowItWorks';
 import { fetchAllEventFormFields } from '@/tickets-portal/data/event-form-fields-read';
@@ -242,9 +243,9 @@ export default async function EventDetailPage({
           ) : (
             <PromoCodesManager
               codes={promoCodes}
-              events={[{ id, name: event.name }]}
               ownerKind="event"
               ownerId={id}
+              buyerSite={getBuyerSite()}
             />
           )}
         </div>
