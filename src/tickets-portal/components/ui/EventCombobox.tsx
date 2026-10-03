@@ -7,23 +7,36 @@ import { formFieldClass } from '@/tickets-portal/components/ui/FormModal';
 
 const ALL_EVENTS: EventOption = { id: '', name: 'All events' };
 
+const defaultOptionLabel = (opt: EventOption) => (opt.id ? `${opt.name} only` : opt.name);
+
 /**
  * Searchable event picker backed by the API (20 results per search), so it
  * scales past any fixed page of events. Posts the chosen id as `name`
- * ('' = all events).
+ * ('' = the empty option, "All events" by default).
  */
 export function EventCombobox({
   name,
   inputId,
   initial,
+  search = searchEventsAction,
+  emptyOption = ALL_EVENTS,
+  optionLabel = defaultOptionLabel,
+  disabled = false,
+  onSelectionChange,
 }: {
   name: string;
   inputId?: string;
-  /** Current selection; null = all events */
+  /** Current selection; null = the empty option */
   initial: EventOption | null;
+  /** Server search; defaults to all of this admin's events by id. */
+  search?: (query: string) => Promise<{ options: EventOption[]; total: number } | { error: string }>;
+  emptyOption?: EventOption;
+  optionLabel?: (opt: EventOption) => string;
+  disabled?: boolean;
+  onSelectionChange?: (option: EventOption) => void;
 }) {
   const listId = useId();
-  const [selected, setSelected] = useState<EventOption>(initial ?? ALL_EVENTS);
+  const [selected, setSelected] = useState<EventOption>(initial ?? emptyOption);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState<EventOption[]>([]);
@@ -50,7 +63,7 @@ export function EventCombobox({
     }
     setLoading(true);
     const timer = setTimeout(async () => {
-      const res = await searchEventsAction(query).catch(() => ({ error: 'Could not search events.' }));
+      const res = await search(query).catch(() => ({ error: 'Could not search events.' }));
       if (seq !== requestSeq.current) return;
       setLoading(false);
       if ('error' in res) {
@@ -66,12 +79,13 @@ export function EventCombobox({
       setActive(0);
     }, 250);
     return () => clearTimeout(timer);
-  }, [query, open]);
+  }, [query, open, search]);
 
-  const choices = query.trim() ? options : [ALL_EVENTS, ...options];
+  const choices = query.trim() ? options : [emptyOption, ...options];
 
   const choose = (opt: EventOption) => {
     setSelected(opt);
+    if (opt.id !== selected.id) onSelectionChange?.(opt);
     setQuery('');
     setOpen(false);
   };
@@ -109,6 +123,7 @@ export function EventCombobox({
           autoComplete="off"
           value={open ? query : selected.name}
           placeholder={open ? 'Search events by name or slug…' : undefined}
+          disabled={disabled}
           onFocus={() => setOpen(true)}
           onClick={() => setOpen(true)}
           onBlur={() => {
@@ -155,7 +170,7 @@ export function EventCombobox({
                 opt.id === selected.id ? 'font-semibold text-stone-900' : 'text-stone-700'
               }`}
             >
-              {opt.id ? `${opt.name} only` : opt.name}
+              {optionLabel(opt)}
             </li>
           ))}
           {!error && total > options.length ? (

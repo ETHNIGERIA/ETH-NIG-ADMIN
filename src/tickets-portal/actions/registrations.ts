@@ -4,6 +4,11 @@ import { redirect, unstable_rethrow } from 'next/navigation';
 import { ticketsApiDelete, ticketsApiPost } from '@/tickets-portal/lib/tickets-api.server';
 import type { AdminRegistration } from '@/tickets-portal/types/admin-registrations';
 
+function eventPath(formData: FormData, eventId: string): string {
+  const section = formData.get("eventKind") === "side" ? "side-events" : "events";
+  return `/tickets-command/${section}/${encodeURIComponent(eventId)}`;
+}
+
 export type RegistrationActionState = { error?: string } | undefined;
 
 export async function confirmRegistrationAction(
@@ -26,7 +31,7 @@ export async function confirmRegistrationAction(
     return { error: e instanceof Error ? e.message : 'Could not confirm registration.' };
   }
 
-  redirect(`/tickets-command/events/${eventId}/registrations/${registrationId}`);
+  redirect(`${eventPath(formData, eventId)}/registrations/${encodeURIComponent(registrationId)}`);
 }
 
 export async function cancelRegistrationAction(
@@ -46,7 +51,7 @@ export async function cancelRegistrationAction(
     return { error: e instanceof Error ? e.message : 'Could not cancel registration.' };
   }
 
-  redirect(`/tickets-command/events/${eventId}?tab=registrations`);
+  redirect(`${eventPath(formData, eventId)}?tab=registrations`);
 }
 
 export async function sendPaymentReminderAction(
@@ -62,5 +67,5 @@ export async function sendPaymentReminderAction(
     unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not send payment reminder.' };
   }
-  redirect(`/tickets-command/events/${eventId}/registrations/${registrationId}`);
+  redirect(`${eventPath(formData, eventId)}/registrations/${encodeURIComponent(registrationId)}`);
 }

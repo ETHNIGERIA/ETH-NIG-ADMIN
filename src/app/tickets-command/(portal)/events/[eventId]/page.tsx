@@ -191,6 +191,14 @@ export default async function EventDetailPage({
         </Link>
         <h1 className="mt-3 text-[28px] font-semibold tracking-tight text-stone-900">{event.name}</h1>
         <p className="mt-1 text-sm text-stone-500">Slug: <span className="font-mono text-stone-700">{event.slug}</span></p>
+        <p className="mt-2 flex flex-wrap gap-3 text-[13px]">
+          <Link href={`/tickets-command/side-events${toQuery({ event: event.slug })}`} className="text-stone-700 underline underline-offset-4 hover:text-stone-900">
+            Side events
+          </Link>
+          <Link href={`/tickets-command/side-events/new${toQuery({ eventSlug: event.slug })}`} className="text-stone-700 underline underline-offset-4 hover:text-stone-900">
+            New side event
+          </Link>
+        </p>
       </div>
 
       {/* Consolidated Navigation Tabs */}

@@ -10,9 +10,11 @@ type Props = {
   name?: string;
   initialItems: string[];
   idPrefix?: string;
+  /** Called after an item is added or removed. */
+  onChange?: () => void;
 };
 
-export function BenefitsListEditor({ name = 'benefits', initialItems, idPrefix = 'benefits' }: Props) {
+export function BenefitsListEditor({ name = 'benefits', initialItems, idPrefix = 'benefits', onChange }: Props) {
   const [items, setItems] = useState<string[]>(() =>
     initialItems.map((s) => s.trim()).filter(Boolean),
   );
@@ -23,6 +25,7 @@ export function BenefitsListEditor({ name = 'benefits', initialItems, idPrefix =
     if (!t) return;
     setItems((prev) => [...prev, t]);
     setDraft('');
+    onChange?.();
   };
 
   return (
@@ -37,7 +40,10 @@ export function BenefitsListEditor({ name = 'benefits', initialItems, idPrefix =
               <span className="min-w-0 flex-1 leading-snug">{b}</span>
               <button
                 type="button"
-                onClick={() => setItems((prev) => prev.filter((_, j) => j !== i))}
+                onClick={() => {
+                  setItems((prev) => prev.filter((_, j) => j !== i));
+                  onChange?.();
+                }}
                 className="shrink-0 rounded px-1.5 py-0.5 text-[12px] text-stone-500 hover:bg-stone-200/80 hover:text-stone-800"
               >
                 Remove

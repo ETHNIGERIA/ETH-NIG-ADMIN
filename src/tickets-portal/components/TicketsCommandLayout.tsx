@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   Calendar,
+  CalendarPlus,
   LayoutDashboard,
   Megaphone,
   Menu,
@@ -30,6 +31,7 @@ import { ToastProvider } from '@/tickets-portal/components/ui/ToastProvider';
 const TICKETS_NAV = [
   { href: '/tickets-command', label: 'Overview', icon: LayoutDashboard },
   { href: '/tickets-command/events', label: 'Events', icon: Calendar },
+  { href: '/tickets-command/side-events', label: 'Side Events', icon: CalendarPlus },
   { href: '/tickets-command/influencers', label: 'Influencers', icon: Megaphone },
   { href: '/tickets-command/applications', label: 'Applications', icon: ClipboardList },
   { href: '/tickets-command/sponsors', label: 'Sponsors', icon: BadgeDollarSign },
