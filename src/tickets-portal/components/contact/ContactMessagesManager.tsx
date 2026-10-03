@@ -7,6 +7,7 @@ import { updateContactMessageStatusAction } from '@/tickets-portal/actions/conta
 import type { ActionState } from '@/tickets-portal/actions/events';
 import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
 import { StatusFilter } from '@/tickets-portal/components/ui/StatusFilter';
+import { TableCard } from '@/tickets-portal/components/ui/TableCard';
 import {
   CONTACT_MESSAGE_STATUSES,
   type ContactMessage,
@@ -69,59 +70,55 @@ export function ContactMessagesManager({
         <StatusFilter statuses={CONTACT_MESSAGE_STATUSES} />
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-sm">
-        {items.length === 0 ? (
+      <TableCard
+        isEmpty={items.length === 0}
+        empty={
           <p className="px-4 py-12 text-center text-sm text-stone-500">
             {filtered ? 'No messages match this filter.' : 'No messages yet.'}
           </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px]">
-              <thead className="border-b border-stone-200/80 bg-stone-50/75">
-                <tr>
-                  <th className={th}>From</th>
-                  <th className={th}>Subject</th>
-                  <th className={th}>Received</th>
-                  <th className={th}>Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {items.map((m) => (
-                  <tr
-                    key={m._id}
-                    onClick={() => setSelected(m)}
-                    className="cursor-pointer transition-colors hover:bg-stone-50/70"
-                  >
-                    <td className={td}>
-                      <p className="font-medium text-stone-900">{m.name}</p>
-                      <p className="text-xs text-stone-500">{m.email}</p>
-                    </td>
-                    <td className={clsx(td, 'max-w-xs')}>
-                      <p className="line-clamp-1 text-stone-800">{m.subject}</p>
-                      <p className="line-clamp-1 text-xs text-stone-500">
-                        {m.message}
-                      </p>
-                    </td>
-                    <td className={clsx(td, 'whitespace-nowrap text-xs text-stone-500')}>
-                      {fmt(m.createdAt)}
-                    </td>
-                    <td className={clsx(td, 'whitespace-nowrap')}>
-                      <span
-                        className={clsx(
-                          'rounded-md px-2 py-0.5 text-[12px] font-medium capitalize',
-                          STATUS_STYLES[m.status],
-                        )}
-                      >
-                        {m.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        }
+        minWidth="min-w-[640px]"
+        head={
+          <>
+            <th className={th}>From</th>
+            <th className={th}>Subject</th>
+            <th className={th}>Received</th>
+            <th className={th}>Status</th>
+          </>
+        }
+      >
+        {items.map((m) => (
+          <tr
+            key={m._id}
+            onClick={() => setSelected(m)}
+            className="cursor-pointer transition-colors hover:bg-stone-50/70"
+          >
+            <td className={td}>
+              <p className="font-medium text-stone-900">{m.name}</p>
+              <p className="text-xs text-stone-500">{m.email}</p>
+            </td>
+            <td className={clsx(td, 'max-w-xs')}>
+              <p className="line-clamp-1 text-stone-800">{m.subject}</p>
+              <p className="line-clamp-1 text-xs text-stone-500">
+                {m.message}
+              </p>
+            </td>
+            <td className={clsx(td, 'whitespace-nowrap text-xs text-stone-500')}>
+              {fmt(m.createdAt)}
+            </td>
+            <td className={clsx(td, 'whitespace-nowrap')}>
+              <span
+                className={clsx(
+                  'rounded-md px-2 py-0.5 text-[12px] font-medium capitalize',
+                  STATUS_STYLES[m.status],
+                )}
+              >
+                {m.status}
+              </span>
+            </td>
+          </tr>
+        ))}
+      </TableCard>
 
       {selected ? (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">

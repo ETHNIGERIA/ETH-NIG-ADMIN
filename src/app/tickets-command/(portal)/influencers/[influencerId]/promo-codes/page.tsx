@@ -1,17 +1,29 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, unstable_rethrow } from 'next/navigation';
 import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
-import type { AdminEvent, Paginated } from '@/tickets-portal/types/admin-events';
 import type { AdminInfluencer } from '@/tickets-portal/types/admin-influencers';
 import type { AdminPromoCode } from '@/tickets-portal/types/admin-promo-codes';
-import { normalizeAdminPromoCode } from '@/tickets-portal/lib/admin-promo-codes';
+import type { Paginated } from '@/tickets-portal/types/admin-events';
+import { Pagination } from '@/tickets-portal/components/ui/Pagination';
+import {
+  ADMIN_PAGE_SIZE,
+  parseListParams,
+  redirectIfPastLastPage,
+  toQuery,
+  type ListSearchParams,
+} from '@/tickets-portal/lib/list-params';
+import { toPromoCodePage } from '@/tickets-portal/lib/admin-promo-codes';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
+import { getBuyerSite } from '@/tickets-portal/auth/server-config';
 import { PromoCodesManager } from '@/tickets-portal/components/promotions/PromoCodesManager';
+import { PromoCodesHowItWorks } from '@/tickets-portal/components/promotions/PromoCodesHowItWorks';
 
 export default async function InfluencerPromoCodesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ influencerId: string }>;
+  searchParams: Promise<ListSearchParams>;
 }) {
   const { influencerId } = await params;
   const id = normalizeDocumentId(influencerId);
@@ -24,21 +36,23 @@ export default async function InfluencerPromoCodesPage({
     notFound();
   }
 
+  const { page } = parseListParams(await searchParams, []);
+  const basePath = `/tickets-command/influencers/${id}/promo-codes`;
   let codes: AdminPromoCode[] = [];
-  let events: Array<{ id: string; name: string }> = [];
+  let total = 0;
   let loadError: string | null = null;
 
   try {
-    const rawCodes = await ticketsApiGet<AdminPromoCode[]>(
-      `/admin/promo-codes?influencerId=${encodeURIComponent(id)}`,
+    const res = toPromoCodePage(
+      await ticketsApiGet<Paginated<AdminPromoCode> | AdminPromoCode[]>(
+        `/admin/promo-codes${toQuery({ influencerId: id, page, limit: ADMIN_PAGE_SIZE })}`,
+      ),
     );
-    codes = rawCodes.map(normalizeAdminPromoCode);
-    const ep = await ticketsApiGet<Paginated<AdminEvent>>(`/admin/events?page=1&limit=100`);
-    events = ep.data.map((e) => ({
-      id: normalizeDocumentId(e._id),
-      name: e.name,
-    }));
+    redirectIfPastLastPage(basePath, page, ADMIN_PAGE_SIZE, res.total);
+    codes = res.codes;
+    total = res.total;
   } catch (e) {
+    unstable_rethrow(e);
     loadError = e instanceof Error ? e.message : 'Could not load promo codes.';
   }
 
@@ -53,6 +67,7 @@ export default async function InfluencerPromoCodesPage({
         <h1 className="text-[28px] font-semibold tracking-tight text-stone-900">
           Promo codes — {influencer.displayName}
         </h1>
+        <PromoCodesHowItWorks owner="influencer" />
       </header>
 
       {loadError ? (
@@ -61,7 +76,10 @@ export default async function InfluencerPromoCodesPage({
           <p className="mt-2 text-[14px]">{loadError}</p>
         </div>
       ) : (
-        <PromoCodesManager codes={codes} events={events} ownerKind="influencer" ownerId={id} />
+        <div className="space-y-4">
+          <PromoCodesManager codes={codes} total={total} ownerKind="influencer" ownerId={id} buyerSite={getBuyerSite()} />
+          <Pagination basePath={basePath} page={page} limit={ADMIN_PAGE_SIZE} total={total} />
+        </div>
       )}
     </div>
   );

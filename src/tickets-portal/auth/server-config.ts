@@ -9,3 +9,31 @@ export function getTicketsApiBaseUrl(): string {
   }
   return raw.replace(/\/$/, '');
 }
+
+export type BuyerSite = {
+  /** Public ticket site base URL (origin + path, no query/hash) */
+  url: string;
+  /** Slug of the single event the ticket site sells; null = unknown */
+  eventSlug: string | null;
+};
+
+/**
+ * Server-only: public ticket site used to build promo tracking links
+ * (`${url}/tickets?ref=...`). BUYER_SITE_URL must be an http(s) URL; any query
+ * or hash is dropped. BUYER_SITE_EVENT_SLUG names the event that site sells, so
+ * links are only offered for codes that apply there. Returns null when unset.
+ */
+export function getBuyerSite(): BuyerSite | null {
+  const raw = process.env.BUYER_SITE_URL?.trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return {
+      url: `${url.origin}${url.pathname}`.replace(/\/$/, ''),
+      eventSlug: process.env.BUYER_SITE_EVENT_SLUG?.trim() || null,
+    };
+  } catch {
+    return null;
+  }
+}

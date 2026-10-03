@@ -4,6 +4,7 @@ export type AdminEvent = {
   _id: string;
   slug: string;
   name: string;
+  kind?: 'main' | 'side';
   status: EventStatus;
   startsAt: string;
   endsAt: string;

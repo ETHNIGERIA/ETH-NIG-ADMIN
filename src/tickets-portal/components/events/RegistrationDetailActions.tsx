@@ -13,10 +13,12 @@ export function RegistrationDetailActions({
   eventId,
   registrationId,
   status,
+  sideEvent = false,
 }: {
   eventId: string;
   registrationId: string;
   status: RegistrationStatus;
+  sideEvent?: boolean;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(confirmRegistrationAction, undefined);
   const [cancelState, cancelAction, cancelPending] = useActionState(cancelRegistrationAction, undefined);
@@ -49,6 +51,7 @@ export function RegistrationDetailActions({
             }}
           >
             <input type="hidden" name="eventId" value={eventId} />
+            <input type="hidden" name="eventKind" value={sideEvent ? "side" : "main"} />
             <input type="hidden" name="registrationId" value={registrationId} />
             <button type="submit" className={btnPrimary} disabled={confirmPending}>
               {confirmPending ? 'Confirming…' : 'Confirm registration'}
@@ -69,6 +72,7 @@ export function RegistrationDetailActions({
             }}
           >
             <input type="hidden" name="eventId" value={eventId} />
+            <input type="hidden" name="eventKind" value={sideEvent ? "side" : "main"} />
             <input type="hidden" name="registrationId" value={registrationId} />
             <button type="submit" className={btnDanger} disabled={cancelPending}>
               {cancelPending ? 'Cancelling…' : 'Cancel registration'}
@@ -78,6 +82,7 @@ export function RegistrationDetailActions({
         {canConfirm ? (
           <form action={reminderAction}>
             <input type="hidden" name="eventId" value={eventId} />
+            <input type="hidden" name="eventKind" value={sideEvent ? "side" : "main"} />
             <input type="hidden" name="registrationId" value={registrationId} />
             <button type="submit" disabled={reminderPending} className="rounded-md border border-stone-300 px-4 py-2 text-[14px] font-medium text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50">
               {reminderPending ? 'Sending…' : 'Send payment reminder'}

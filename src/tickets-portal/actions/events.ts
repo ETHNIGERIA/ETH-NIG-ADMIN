@@ -3,10 +3,11 @@
 import { redirect, unstable_rethrow } from 'next/navigation';
 import {
   ticketsApiDelete,
+  ticketsApiGet,
   ticketsApiPatch,
   ticketsApiPost,
 } from '@/tickets-portal/lib/tickets-api.server';
-import type { AdminEvent, EventStatus } from '@/tickets-portal/types/admin-events';
+import type { AdminEvent, EventStatus, Paginated } from '@/tickets-portal/types/admin-events';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 
 export type ActionState = { error?: string } | undefined;
@@ -157,4 +158,25 @@ export async function deleteEventAction(_prev: ActionState, formData: FormData):
   }
 
   redirect('/tickets-command/events');
+}
+
+export type EventOption = { id: string; name: string };
+
+/** Server-side event search for pickers (name or slug, max 20 results). */
+export async function searchEventsAction(
+  search: string,
+): Promise<{ options: EventOption[]; total: number } | { error: string }> {
+  const q = new URLSearchParams({ page: '1', limit: '20' });
+  const term = search.trim().slice(0, 100);
+  if (term) q.set('search', term);
+  try {
+    const res = await ticketsApiGet<Paginated<AdminEvent>>(`/admin/events?${q.toString()}`);
+    return {
+      options: res.data.map((e) => ({ id: normalizeDocumentId(e._id), name: e.name })),
+      total: res.total,
+    };
+  } catch (e) {
+    unstable_rethrow(e);
+    return { error: e instanceof Error ? e.message : 'Could not search events.' };
+  }
 }

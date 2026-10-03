@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Loader2, X } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import {
   updateInfluencerApplicationStatusAction,
@@ -16,6 +17,8 @@ import {
 } from '@/tickets-portal/types/admin-applications';
 import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
 import { StatusFilter } from '@/tickets-portal/components/ui/StatusFilter';
+import { ModalShell } from '@/tickets-portal/components/ui/ModalShell';
+import { TableCard, tableTd as td, tableTh as th } from '@/tickets-portal/components/ui/TableCard';
 
 const STATUSES = APPLICATION_STATUSES;
 
@@ -60,9 +63,6 @@ export function ApplicationsManager(props: Props) {
   const toast = useToast();
   const [selected, setSelected] = useState<AnyApplication | null>(null);
 
-  const th = 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-stone-500';
-  const td = 'px-4 py-3 align-top text-sm text-stone-700';
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -72,57 +72,53 @@ export function ApplicationsManager(props: Props) {
         <StatusFilter statuses={STATUSES} />
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-stone-200/90 bg-white shadow-sm">
-        {items.length === 0 ? (
+      <TableCard
+        isEmpty={items.length === 0}
+        empty={
           <p className="px-4 py-12 text-center text-sm text-stone-500">
             {props.filtered ? 'No applications match this filter.' : 'No applications yet.'}
           </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px]">
-              <thead className="border-b border-stone-200/80 bg-stone-50/75">
-                <tr>
-                  <th className={th}>Applicant</th>
-                  <th className={th}>{kind === 'volunteer' ? 'Tracks' : 'Message'}</th>
-                  <th className={th}>Submitted</th>
-                  <th className={th}>Status</th>
-                  <th className={clsx(th, 'w-8')} />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {items.map((item) => (
-                  <tr
-                    key={item._id}
-                    onClick={() => setSelected(item)}
-                    className="cursor-pointer transition-colors hover:bg-stone-50/70"
-                  >
-                    <td className={td}>
-                      <p className="font-medium text-stone-900">{item.name}</p>
-                      <p className="text-xs text-stone-500">{item.email}</p>
-                    </td>
-                    <td className={clsx(td, 'max-w-xs')}>
-                      <p className="line-clamp-1 text-stone-600">
-                        {props.kind === 'volunteer'
-                          ? (item as VolunteerApplication).selectedTracks.join(', ') || '—'
-                          : (item as InfluencerApplication).message || '—'}
-                      </p>
-                    </td>
-                    <td className={clsx(td, 'whitespace-nowrap text-xs text-stone-500')}>
-                      {formatDate(item.createdAt)}
-                    </td>
-                    <td className={clsx(td, 'whitespace-nowrap')}>
-                      <StatusBadge status={item.status} />
-                    </td>
-                    <td className={clsx(td, 'text-right text-stone-300')}>
-                      <ChevronRight className="h-4 w-4" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        }
+        minWidth="min-w-[720px]"
+        head={
+          <>
+            <th className={th}>Applicant</th>
+            <th className={th}>{kind === 'volunteer' ? 'Tracks' : 'Message'}</th>
+            <th className={th}>Submitted</th>
+            <th className={th}>Status</th>
+            <th className={clsx(th, 'w-8')} />
+          </>
+        }
+      >
+        {items.map((item) => (
+          <tr
+            key={item._id}
+            onClick={() => setSelected(item)}
+            className="cursor-pointer transition-colors hover:bg-stone-50/70"
+          >
+            <td className={td}>
+              <p className="font-medium text-stone-900">{item.name}</p>
+              <p className="text-xs text-stone-500">{item.email}</p>
+            </td>
+            <td className={clsx(td, 'max-w-xs')}>
+              <p className="line-clamp-1 text-stone-600">
+                {props.kind === 'volunteer'
+                  ? (item as VolunteerApplication).selectedTracks.join(', ') || '—'
+                  : (item as InfluencerApplication).message || '—'}
+              </p>
+            </td>
+            <td className={clsx(td, 'whitespace-nowrap text-xs text-stone-500')}>
+              {formatDate(item.createdAt)}
+            </td>
+            <td className={clsx(td, 'whitespace-nowrap')}>
+              <StatusBadge status={item.status} />
+            </td>
+            <td className={clsx(td, 'text-right text-stone-300')}>
+              <ChevronRight className="h-4 w-4" />
+            </td>
+          </tr>
+        ))}
+      </TableCard>
 
       {selected && (
         <ApplicationDetailModal
@@ -201,85 +197,78 @@ function ApplicationDetailModal({
   const influencer = kind === 'influencer' ? (application as InfluencerApplication) : null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-stone-900/50 p-4 backdrop-blur-xs sm:p-8"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !isPending) onClose();
-      }}
-    >
-      <div className="relative w-full max-w-xl rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95">
+    <ModalShell onClose={onClose} label={application.name} isBusy={isPending} size="xl">
+      <h2 className="text-lg font-bold tracking-tight text-stone-900">{application.name}</h2>
+      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-stone-500">
+        <span>{application.email}</span>
+        {application.whatsapp ? <span>WhatsApp: {application.whatsapp}</span> : null}
+        <span>Submitted {formatDate(application.createdAt)}</span>
+      </div>
+
+      <dl className="mt-5 space-y-4 text-sm">
+        {volunteer && (
+          <>
+            <Field label="Tracks">
+              <Chips values={volunteer.selectedTracks} />
+            </Field>
+            <Field label="Cover letter">
+              <p className="whitespace-pre-wrap leading-relaxed text-stone-700">
+                {volunteer.coverLetter || '—'}
+              </p>
+            </Field>
+          </>
+        )}
+        {influencer && (
+          <>
+            <Field label="Message">
+              <p className="whitespace-pre-wrap leading-relaxed text-stone-700">
+                {influencer.message || '—'}
+              </p>
+            </Field>
+            <Field label="Linked influencer">
+              {influencer.influencerId ? (
+                <Link
+                  href={`/tickets-command/influencers/${influencer.influencerId}/promo-codes`}
+                  className="text-sm font-medium text-stone-900 underline underline-offset-4 hover:text-stone-600"
+                >
+                  Open influencer promo codes
+                </Link>
+              ) : (
+                <span className="text-xs text-stone-500">
+                  None yet. Accepting this application creates an influencer (or links an existing one with
+                  the same email).
+                </span>
+              )}
+            </Field>
+          </>
+        )}
+        <Field label="Social handles">
+          <Chips values={application.socialMediaHandles} />
+        </Field>
+      </dl>
+
+      <div className="mt-6 flex items-center justify-end gap-2.5 border-t border-stone-100 pt-4">
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as ApplicationStatus)}
+          className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm capitalize text-stone-800 outline-none focus:border-stone-400"
+        >
+          {STATUSES.map((s) => (
+            <option key={s} value={s} className="capitalize">
+              {s}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
-          onClick={onClose}
-          disabled={isPending}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700 disabled:opacity-50"
-          aria-label="Close"
+          onClick={save}
+          disabled={isPending || status === application.status}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
         >
-          <X className="h-4 w-4" />
+          {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          Save status
         </button>
-
-        <h2 className="text-lg font-bold tracking-tight text-stone-900">{application.name}</h2>
-        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-stone-500">
-          <span>{application.email}</span>
-          {application.whatsapp ? <span>WhatsApp: {application.whatsapp}</span> : null}
-          <span>Submitted {formatDate(application.createdAt)}</span>
-        </div>
-
-        <dl className="mt-5 space-y-4 text-sm">
-          {volunteer && (
-            <>
-              <Field label="Tracks">
-                <Chips values={volunteer.selectedTracks} />
-              </Field>
-              <Field label="Cover letter">
-                <p className="whitespace-pre-wrap leading-relaxed text-stone-700">
-                  {volunteer.coverLetter || '—'}
-                </p>
-              </Field>
-            </>
-          )}
-          {influencer && (
-            <>
-              <Field label="Message">
-                <p className="whitespace-pre-wrap leading-relaxed text-stone-700">
-                  {influencer.message || '—'}
-                </p>
-              </Field>
-              {influencer.influencerId ? (
-                <Field label="Linked influencer">
-                  <span className="font-mono text-xs text-stone-600">{influencer.influencerId}</span>
-                </Field>
-              ) : null}
-            </>
-          )}
-          <Field label="Social handles">
-            <Chips values={application.socialMediaHandles} />
-          </Field>
-        </dl>
-
-        <div className="mt-6 flex items-center justify-end gap-2.5 border-t border-stone-100 pt-4">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as ApplicationStatus)}
-            className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm capitalize text-stone-800 outline-none focus:border-stone-400"
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s} className="capitalize">
-                {s}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={save}
-            disabled={isPending || status === application.status}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
-          >
-            {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Save status
-          </button>
-        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

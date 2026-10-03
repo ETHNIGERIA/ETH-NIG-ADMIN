@@ -1,17 +1,29 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, unstable_rethrow } from 'next/navigation';
 import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
-import type { AdminEvent, Paginated } from '@/tickets-portal/types/admin-events';
 import type { AdminCommunity } from '@/tickets-portal/types/admin-communities';
 import type { AdminPromoCode } from '@/tickets-portal/types/admin-promo-codes';
-import { normalizeAdminPromoCode } from '@/tickets-portal/lib/admin-promo-codes';
+import type { Paginated } from '@/tickets-portal/types/admin-events';
+import { Pagination } from '@/tickets-portal/components/ui/Pagination';
+import {
+  ADMIN_PAGE_SIZE,
+  parseListParams,
+  redirectIfPastLastPage,
+  toQuery,
+  type ListSearchParams,
+} from '@/tickets-portal/lib/list-params';
+import { toPromoCodePage } from '@/tickets-portal/lib/admin-promo-codes';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
+import { getBuyerSite } from '@/tickets-portal/auth/server-config';
 import { PromoCodesManager } from '@/tickets-portal/components/promotions/PromoCodesManager';
+import { PromoCodesHowItWorks } from '@/tickets-portal/components/promotions/PromoCodesHowItWorks';
 
 export default async function CommunityPromoCodesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ communityId: string }>;
+  searchParams: Promise<ListSearchParams>;
 }) {
   const { communityId } = await params;
   const id = normalizeDocumentId(communityId);
@@ -24,21 +36,23 @@ export default async function CommunityPromoCodesPage({
     notFound();
   }
 
+  const { page } = parseListParams(await searchParams, []);
+  const basePath = `/tickets-command/communities/${id}/promo-codes`;
   let codes: AdminPromoCode[] = [];
-  let events: Array<{ id: string; name: string }> = [];
+  let total = 0;
   let loadError: string | null = null;
 
   try {
-    const rawCodes = await ticketsApiGet<AdminPromoCode[]>(
-      `/admin/promo-codes?communityId=${encodeURIComponent(id)}`,
+    const res = toPromoCodePage(
+      await ticketsApiGet<Paginated<AdminPromoCode> | AdminPromoCode[]>(
+        `/admin/promo-codes${toQuery({ communityId: id, page, limit: ADMIN_PAGE_SIZE })}`,
+      ),
     );
-    codes = rawCodes.map(normalizeAdminPromoCode);
-    const ep = await ticketsApiGet<Paginated<AdminEvent>>(`/admin/events?page=1&limit=100`);
-    events = ep.data.map((e) => ({
-      id: normalizeDocumentId(e._id),
-      name: e.name,
-    }));
+    redirectIfPastLastPage(basePath, page, ADMIN_PAGE_SIZE, res.total);
+    codes = res.codes;
+    total = res.total;
   } catch (e) {
+    unstable_rethrow(e);
     loadError = e instanceof Error ? e.message : 'Could not load promo codes.';
   }
 
@@ -51,6 +65,7 @@ export default async function CommunityPromoCodesPage({
           </Link>
         </div>
         <h1 className="text-[28px] font-semibold tracking-tight text-stone-900">Promo codes — {community.name}</h1>
+        <PromoCodesHowItWorks owner="community" />
       </header>
 
       {loadError ? (
@@ -59,7 +74,10 @@ export default async function CommunityPromoCodesPage({
           <p className="mt-2 text-[14px]">{loadError}</p>
         </div>
       ) : (
-        <PromoCodesManager codes={codes} events={events} ownerKind="community" ownerId={id} />
+        <div className="space-y-4">
+          <PromoCodesManager codes={codes} total={total} ownerKind="community" ownerId={id} buyerSite={getBuyerSite()} />
+          <Pagination basePath={basePath} page={page} limit={ADMIN_PAGE_SIZE} total={total} />
+        </div>
       )}
     </div>
   );
