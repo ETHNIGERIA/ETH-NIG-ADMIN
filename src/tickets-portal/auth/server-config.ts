@@ -10,6 +10,12 @@ export function getTicketsApiBaseUrl(): string {
   return raw.replace(/\/$/, '');
 }
 
+/** Optional ETH Nigeria tickets API. Falls back to the LBW tickets API. */
+export function getEthTicketsApiBaseUrl(): string {
+  const raw = process.env.ETH_TICKETS_API_BASE_URL?.trim();
+  return (raw || getTicketsApiBaseUrl()).replace(/\/$/, '');
+}
+
 export type BuyerSite = {
   /** Public ticket site base URL (origin + path, no query/hash) */
   url: string;

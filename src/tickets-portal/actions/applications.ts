@@ -32,3 +32,53 @@ export async function updateInfluencerApplicationStatusAction(_prev: Application
   if (!id) return { error: 'Missing application.' };
   return updateStatus(`/admin/influencer-applications/${id}/status`, formData);
 }
+
+const PARTNER_STATUSES = new Set(['pending', 'reviewed', 'approved', 'rejected']);
+
+export async function updatePartnerApplicationStatusAction(
+  _prev: ApplicationActionState,
+  formData: FormData,
+): Promise<ApplicationActionState> {
+  return updateApplicationStatus('/admin/partner-applications', 'partners', formData);
+}
+
+export async function updateSponsorApplicationStatusAction(
+  _prev: ApplicationActionState,
+  formData: FormData,
+): Promise<ApplicationActionState> {
+  return updateApplicationStatus('/admin/sponsor-applications', 'sponsors', formData);
+}
+
+export async function updateSpeakerApplicationStatusAction(
+  _prev: ApplicationActionState,
+  formData: FormData,
+): Promise<ApplicationActionState> {
+  return updateApplicationStatus('/admin/speaker-applications', 'speakers', formData);
+}
+
+async function updateApplicationStatus(
+  basePath: string,
+  page: 'partners' | 'sponsors' | 'speakers',
+  formData: FormData,
+): Promise<ApplicationActionState> {
+  const id = String(formData.get('applicationId') ?? '').trim();
+  const eventId = String(formData.get('eventId') ?? '').trim();
+  const status = String(formData.get('status') ?? '').trim().toLowerCase();
+
+  if (!id) return { error: 'Missing application.' };
+  if (!PARTNER_STATUSES.has(status)) return { error: 'Invalid status.' };
+
+  try {
+    await ticketsApiPatch<unknown, { status: string }>(`${basePath}/${id}/status`, { status });
+  } catch (e) {
+    unstable_rethrow(e);
+    return { error: e instanceof Error ? e.message : 'Could not update status.' };
+  }
+
+  if (eventId) {
+    revalidatePath(`/tickets-command/events/${eventId}`);
+    revalidatePath(`/tickets-command/events/${eventId}/${page}`);
+  }
+  revalidatePath('/tickets-command/program');
+  return { ok: true };
+}

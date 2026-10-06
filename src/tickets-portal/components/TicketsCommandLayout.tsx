@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import {
   Calendar,
   CalendarPlus,
+  Handshake,
   LayoutDashboard,
   Megaphone,
   Menu,
@@ -32,6 +33,7 @@ const TICKETS_NAV = [
   { href: '/tickets-command', label: 'Overview', icon: LayoutDashboard },
   { href: '/tickets-command/events', label: 'Events', icon: Calendar },
   { href: '/tickets-command/side-events', label: 'Side Events', icon: CalendarPlus },
+  { href: '/tickets-command/program', label: 'ETH & LBW', icon: Handshake },
   { href: '/tickets-command/influencers', label: 'Influencers', icon: Megaphone },
   { href: '/tickets-command/applications', label: 'Applications', icon: ClipboardList },
   { href: '/tickets-command/sponsors', label: 'Sponsors', icon: BadgeDollarSign },
@@ -168,6 +170,7 @@ export function TicketsCommandLayout({ children }: { children: ReactNode }) {
                   <Link
                     key={href}
                     href={href}
+                    prefetch={false}
                     className={clsx(
                       'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[14px] transition-colors',
                       active
@@ -197,8 +200,8 @@ export function TicketsCommandLayout({ children }: { children: ReactNode }) {
             </div>
           </aside>
 
-          <main className="min-w-0 flex-1 px-5 py-8 sm:px-8 sm:py-10 lg:px-14 lg:py-12">
-            <div className="mx-auto max-w-5xl">{children}</div>
+          <main className="min-w-0 flex-1 px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+            <div className="mx-auto w-full max-w-[90rem]">{children}</div>
           </main>
         </div>
       </div>

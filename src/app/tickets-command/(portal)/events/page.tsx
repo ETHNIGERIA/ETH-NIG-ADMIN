@@ -88,6 +88,7 @@ export default async function EventsListPage({
                     <td className={`${td} font-medium text-stone-900`}>
                       <Link
                         href={`/tickets-command/events/${id}`}
+                        prefetch={false}
                         className="hover:underline"
                       >
                         {ev.name}
@@ -113,10 +114,11 @@ export default async function EventsListPage({
           </span>
           <div className="flex gap-2">
             {page > 1 ? (
-              <Link
-                href={`/tickets-command/events?page=${page - 1}`}
-                className="rounded-md border border-stone-200 px-3 py-1.5 hover:bg-stone-50"
-              >
+          <Link
+            href={`/tickets-command/events?page=${page - 1}`}
+            prefetch={false}
+            className="rounded-md border border-stone-200 px-3 py-1.5 hover:bg-stone-50"
+          >
                 Previous
               </Link>
             ) : (
@@ -125,6 +127,7 @@ export default async function EventsListPage({
             {page < pages ? (
               <Link
                 href={`/tickets-command/events?page=${page + 1}`}
+                prefetch={false}
                 className="rounded-md border border-stone-200 px-3 py-1.5 hover:bg-stone-50"
               >
                 Next

@@ -186,10 +186,6 @@ const Registrations = () => {
     const toDate = dateTo ? new Date(`${dateTo}T23:59:59.999`) : null;
 
     return registrations.filter((registration) => {
-      if (registration.paymentStatus !== 'free') {
-        return false;
-      }
-
       if (selectedEventId && registration.eventId !== selectedEventId) {
         return false;
       }
@@ -227,9 +223,9 @@ const Registrations = () => {
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-[#003D11] flex items-center gap-3">
-              <ClipboardList className="w-8 h-8" /> Free Registrations
+              <ClipboardList className="w-8 h-8" /> Registrations
             </h1>
-            <p className="text-gray-500 mt-1">Registrations saved in event_registrations where paymentStatus is free.</p>
+            <p className="text-gray-500 mt-1">Registrations saved in event_registrations, including free and paid tickets.</p>
           </div>
 
           <button
@@ -325,6 +321,7 @@ const Registrations = () => {
                     <th className="p-4 text-xs uppercase tracking-wide">Event</th>
                     <th className="p-4 text-xs uppercase tracking-wide">Email</th>
                     <th className="p-4 text-xs uppercase tracking-wide">Name</th>
+                    <th className="p-4 text-xs uppercase tracking-wide">Payment</th>
                     <th className="p-4 text-xs uppercase tracking-wide">Source</th>
                     <th className="p-4 text-xs uppercase tracking-wide">Email Sent</th>
                     <th className="p-4 text-xs uppercase tracking-wide">Created</th>
@@ -340,6 +337,7 @@ const Registrations = () => {
                       <td className="p-4 font-semibold text-gray-900">{registration.eventTitle || 'Untitled Event'}</td>
                       <td className="p-4 text-sm text-gray-700">{registration.email || '-'}</td>
                       <td className="p-4 text-sm text-gray-700">{registration.fullName || '-'}</td>
+                      <td className="p-4 text-sm text-gray-700">{registration.paymentStatus || '-'}</td>
                       <td className="p-4 text-sm text-gray-700">{registration.source || '-'}</td>
                       <td className="p-4 text-sm text-gray-700">{registration.confirmationEmailSent ? 'Yes' : 'No'}</td>
                       <td className="p-4 text-sm text-gray-600">{formatTimestamp(registration.createdAt)}</td>
@@ -350,7 +348,7 @@ const Registrations = () => {
             </div>
 
             {!filteredRegistrations.length && (
-              <div className="p-16 text-center text-gray-400">No free registrations match your filters.</div>
+              <div className="p-16 text-center text-gray-400">No registrations match your filters.</div>
             )}
 
             {hasMore && (

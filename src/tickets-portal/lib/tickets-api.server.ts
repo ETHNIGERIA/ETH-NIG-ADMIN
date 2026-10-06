@@ -2,6 +2,9 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { TICKETS_LOGIN_PATH, TICKETS_SESSION_COOKIE } from '@/tickets-portal/auth/constants';
 import { getTicketsApiBaseUrl } from '@/tickets-portal/auth/server-config';
+import { isTimeoutError } from '@/tickets-portal/lib/api-errors';
+
+const FETCH_TIMEOUT_MS = 12_000;
 
 type NestEnvelope<T> = {
   success: boolean;
@@ -39,15 +42,23 @@ async function authFetch(path: string, init: RequestInit): Promise<Response> {
   }
   const base = getTicketsApiBaseUrl();
   const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
-  return fetch(url, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/json',
-      ...init.headers,
-    },
-    cache: 'no-store',
-  });
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: init.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        ...init.headers,
+      },
+      cache: 'no-store',
+    });
+  } catch (e) {
+    if (isTimeoutError(e)) {
+      throw new Error('Tickets API timed out. Try again.');
+    }
+    throw e instanceof Error ? e : new Error('Could not reach tickets API.');
+  }
 }
 
 /**
@@ -66,6 +77,39 @@ export async function ticketsApiGet<T>(path: string): Promise<T> {
     throwFromErrorBody(rawJson, res.status);
   }
 
+  return unwrapEnvelope<T>(rawJson);
+}
+
+function joinUrl(baseUrl: string, path: string): string {
+  const base = baseUrl.replace(/\/$/, '');
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+/**
+ * Unauthenticated GET. Use for public event/partner/sponsor routes,
+ * including a second host such as ETH Nigeria.
+ */
+export async function ticketsPublicGet<T>(path: string, baseUrl?: string): Promise<T> {
+  const url = joinUrl(baseUrl ?? getTicketsApiBaseUrl(), path);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+  } catch (e) {
+    if (isTimeoutError(e)) {
+      throw new Error('Tickets API timed out. Try again.');
+    }
+    throw e instanceof Error ? e : new Error('Could not reach tickets API.');
+  }
+
+  const rawJson: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throwFromErrorBody(rawJson, res.status);
+  }
   return unwrapEnvelope<T>(rawJson);
 }
 
