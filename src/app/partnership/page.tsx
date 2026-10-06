@@ -27,7 +27,9 @@ const Partnerships = () => {
     email: string;
     companyName: string;
     participationType: string;
-    interests: string;
+    interests?: string;
+    interest?: string;
+    pitch?: string;
     companySocials?: string;
     logo?: string;
     status: 'pending' | 'reviewed' | 'approved';
@@ -187,9 +189,21 @@ const Partnerships = () => {
                     <div className="flex flex-col gap-2 p-4 bg-[#FEFAF3] rounded-xl border border-[#CEC9C0]/30">
                       <div className="flex items-center gap-2">
                         <MessageSquare className="w-5 h-5 text-[#3C9B3E]" />
-                        <p className="text-xs text-gray-400 font-bold uppercase">Interests & Pitch</p>
+                        <p className="text-xs text-gray-400 font-bold uppercase">Interest</p>
                       </div>
-                      <p className="text-gray-700 text-sm leading-relaxed italic">"{selectedInquiry.interests}"</p>
+                      <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                        {selectedInquiry.interest || selectedInquiry.interests || 'Not provided'}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2 p-4 bg-[#FEFAF3] rounded-xl border border-[#CEC9C0]/30">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-[#3C9B3E]" />
+                        <p className="text-xs text-gray-400 font-bold uppercase">Pitch</p>
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                        {selectedInquiry.pitch || 'Not provided'}
+                      </p>
                     </div>
                   </div>
                 </div>
