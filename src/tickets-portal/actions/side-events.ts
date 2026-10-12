@@ -20,6 +20,13 @@ function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim();
 }
 
+function consoleSideEventPath(formData: FormData, sideEventId?: string) {
+  const path = text(formData, 'returnTo');
+  const match = /^\/tickets-command\/events-v2\/([a-f0-9]{24})\/side-events(?:\/([a-f0-9]{24}))?$/i.exec(path);
+  if (!match || (sideEventId && match[2] !== sideEventId) || (!sideEventId && match[2])) return null;
+  return path;
+}
+
 /** BenefitsListEditor submits one benefit per line. */
 function benefitsFrom(formData: FormData): string[] {
   return text(formData, 'benefits')
@@ -108,6 +115,11 @@ export async function createSideEventAction(
     unstable_rethrow(e);
     return { error: message(e, 'Could not create the side event.') };
   }
+  const consolePath = consoleSideEventPath(formData);
+  if (consolePath) {
+    revalidatePath(consolePath);
+    redirect(`${consolePath}/${created._id}`);
+  }
   redirect(`/tickets-command/side-events/${created._id}`);
 }
 
@@ -152,6 +164,8 @@ export async function updateSideEventAction(
     return { error: message(e, 'Could not save the side event.') };
   }
   revalidatePath(`/tickets-command/side-events/${id}`);
+  const consolePath = consoleSideEventPath(formData, id);
+  if (consolePath) revalidatePath(consolePath);
   return { notice: 'Saved.' };
 }
 
@@ -175,6 +189,8 @@ export async function setSideEventStatusAction(
     return { error: message(e, 'Could not change the status.') };
   }
   revalidatePath(`/tickets-command/side-events/${id}`);
+  const consolePath = consoleSideEventPath(formData, id);
+  if (consolePath) revalidatePath(consolePath);
   return { notice: status === 'published' ? 'Published.' : 'Archived.' };
 }
 

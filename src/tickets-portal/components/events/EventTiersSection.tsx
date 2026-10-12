@@ -177,7 +177,7 @@ function EarlyBirdFields({
   );
 }
 
-function AddTierForm({ eventId, onDone }: { eventId: string; onDone?: () => void }) {
+function AddTierForm({ eventId, onDone, returnTo }: { eventId: string; onDone?: () => void; returnTo?: string }) {
   const [state, action, pending] = useActionState(createTierAction, undefined as ActionState);
   const [isFree, setIsFree] = useState(false);
 
@@ -190,6 +190,7 @@ function AddTierForm({ eventId, onDone }: { eventId: string; onDone?: () => void
       ) : null}
       <form action={action} className="space-y-4">
         <input type="hidden" name="eventId" value={eventId} />
+        {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
         <div>
           <label className={labelClass} htmlFor="new-tier-name">
             Name
@@ -291,7 +292,7 @@ function AddTierForm({ eventId, onDone }: { eventId: string; onDone?: () => void
   );
 }
 
-function TierRow({ tier, eventId }: { tier: AdminTicketTier; eventId: string }) {
+function TierRow({ tier, eventId, returnTo }: { tier: AdminTicketTier; eventId: string; returnTo?: string }) {
   const id = tierId(tier);
   const [updateState, updateAction, updatePending] = useActionState(updateTierAction, undefined as ActionState);
   const [deleteState, deleteAction, deletePending] = useActionState(deleteTierAction, undefined as ActionState);
@@ -313,6 +314,7 @@ function TierRow({ tier, eventId }: { tier: AdminTicketTier; eventId: string }) 
         <td className="py-3 text-right">
           <form action={deleteAction} className="inline">
             <input type="hidden" name="eventId" value={eventId} />
+            {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
             <input type="hidden" name="tierId" value={id} />
             <button
               type="submit"
@@ -348,6 +350,7 @@ function TierRow({ tier, eventId }: { tier: AdminTicketTier; eventId: string }) 
                 ) : null}
                 <form action={updateAction} className="max-w-lg space-y-3">
                   <input type="hidden" name="eventId" value={eventId} />
+                  {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
                   <input type="hidden" name="tierId" value={id} />
                   <div>
                     <label className={labelClass} htmlFor={`name-${id}`}>
@@ -479,9 +482,11 @@ function TierRow({ tier, eventId }: { tier: AdminTicketTier; eventId: string }) 
 export function EventTiersSection({
   eventId,
   initialTiers,
+  returnTo,
 }: {
   eventId: string;
   initialTiers: AdminTicketTier[];
+  returnTo?: string;
 }) {
   const [showAddPanel, setShowAddPanel] = useState(false);
   const count = initialTiers.length;
@@ -508,7 +513,7 @@ export function EventTiersSection({
       </div>
 
       <TierSlideout open={showAddPanel} title="New tier" onClose={() => setShowAddPanel(false)}>
-        <AddTierForm eventId={eventId} onDone={() => setShowAddPanel(false)} />
+        <AddTierForm eventId={eventId} onDone={() => setShowAddPanel(false)} returnTo={returnTo} />
       </TierSlideout>
 
       {count === 0 ? (
@@ -539,7 +544,7 @@ export function EventTiersSection({
               </tr>
             </thead>
             {initialTiers.map((tier) => (
-              <TierRow key={tierId(tier)} tier={tier} eventId={eventId} />
+              <TierRow key={tierId(tier)} tier={tier} eventId={eventId} returnTo={returnTo} />
             ))}
           </table>
         </div>

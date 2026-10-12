@@ -12,6 +12,11 @@ import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 
 export type ActionState = { error?: string } | undefined;
 
+function eventReturnTo(formData: FormData, eventId: string, section: string) {
+  const expected = `/tickets-command/events-v2/${eventId}/${section}`;
+  return formData.get('returnTo') === expected ? expected : `/tickets-command/events/${eventId}`;
+}
+
 function parseJsonArray(formData: FormData, key: string): unknown[] | undefined {
   const raw = String(formData.get(key) ?? '').trim();
   if (!raw) return undefined;
@@ -119,7 +124,7 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
     return { error: e instanceof Error ? e.message : 'Could not update event.' };
   }
 
-  redirect(`/tickets-command/events/${eventId}`);
+  redirect(eventReturnTo(formData, eventId, 'settings'));
 }
 
 export async function setEventStatusAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -141,7 +146,7 @@ export async function setEventStatusAction(_prev: ActionState, formData: FormDat
     return { error: e instanceof Error ? e.message : 'Could not update status.' };
   }
 
-  redirect(`/tickets-command/events/${eventId}`);
+  redirect(eventReturnTo(formData, eventId, 'settings'));
 }
 
 export async function deleteEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -157,7 +162,7 @@ export async function deleteEventAction(_prev: ActionState, formData: FormData):
     return { error: e instanceof Error ? e.message : 'Could not delete event.' };
   }
 
-  redirect('/tickets-command/events');
+  redirect(formData.get('returnTo') === '/tickets-command/events-v2' ? '/tickets-command/events-v2' : '/tickets-command/events');
 }
 
 export type EventOption = { id: string; name: string };

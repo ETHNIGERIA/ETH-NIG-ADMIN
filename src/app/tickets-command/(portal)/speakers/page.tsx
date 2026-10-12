@@ -15,6 +15,7 @@ import {
   type CollabApplicationPage,
   type SpeakerApplication,
 } from '@/tickets-portal/types/admin-collab-applications';
+import { SpeakersTabs } from '@/tickets-portal/components/speakers/SpeakersTabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,6 +60,7 @@ export default async function SpeakersPage({ searchParams }: { searchParams: Pro
         <h1 className="text-[28px] font-semibold tracking-tight text-stone-900">Speakers</h1>
         <p className="mt-2 text-[15px] text-stone-600">Review speaker applications submitted from the event site.</p>
       </header>
+      <SpeakersTabs active="applications" />
       {content}
     </div>
   );

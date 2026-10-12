@@ -73,5 +73,8 @@ export async function saveProgramAdmissionAction(
   }
 
   revalidatePath(`/tickets-command/events/${eventId}`);
+  if (formData.get('returnTo') === `/tickets-command/events-v2/${eventId}/programs`) {
+    revalidatePath(`/tickets-command/events-v2/${eventId}/programs`);
+  }
   return undefined;
 }

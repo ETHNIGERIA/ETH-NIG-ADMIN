@@ -13,7 +13,7 @@ const NEXT: Record<AdminSideEvent['status'], Array<'published' | 'archived'>> = 
   archived: ['published'],
 };
 
-export function SideEventStatusActions({ event, disabled = false, onPendingChange }: { event: AdminSideEvent; disabled?: boolean; onPendingChange?: (pending: boolean) => void }) {
+export function SideEventStatusActions({ event, disabled = false, onPendingChange, returnTo }: { event: AdminSideEvent; disabled?: boolean; onPendingChange?: (pending: boolean) => void; returnTo?: string }) {
   const [state, formAction, pending] = useActionState(setSideEventStatusAction, undefined as SideEventActionState);
   useEffect(() => { onPendingChange?.(pending); }, [pending, onPendingChange]);
 
@@ -40,6 +40,7 @@ export function SideEventStatusActions({ event, disabled = false, onPendingChang
             <input type="hidden" name="id" value={event._id} readOnly />
             <input type="hidden" name="version" value={event.version} readOnly />
             <input type="hidden" name="status" value={status} readOnly />
+            {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
             <button
               type="submit"
               disabled={pending || disabled}

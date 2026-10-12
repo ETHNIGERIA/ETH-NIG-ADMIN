@@ -9,6 +9,11 @@ import type { AdminFormField, FormFieldType } from '@/tickets-portal/types/admin
 import type { RegistrationDraftRowPayload } from '@/tickets-portal/types/registration-draft';
 import type { ActionState } from '@/tickets-portal/actions/events';
 
+function fieldsReturnTo(formData: FormData, eventId: string) {
+  const expected = `/tickets-command/events-v2/${eventId}/fields`;
+  return formData.get('returnTo') === expected ? expected : `/tickets-command/events/${eventId}?tab=fields`;
+}
+
 const TYPES: FormFieldType[] = ['text', 'textarea', 'select', 'checkbox', 'number', 'date'];
 
 function parseType(raw: string): FormFieldType {
@@ -173,7 +178,7 @@ export async function commitRegistrationDraftAction(
     };
   }
 
-  redirect(`/tickets-command/events/${eventId}?tab=fields`);
+  redirect(fieldsReturnTo(formData, eventId));
 }
 
 export async function updateFormFieldAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -219,7 +224,7 @@ export async function updateFormFieldAction(_prev: ActionState, formData: FormDa
     return { error: e instanceof Error ? e.message : 'Could not update field.' };
   }
 
-  redirect(`/tickets-command/events/${eventId}?tab=fields`);
+  redirect(fieldsReturnTo(formData, eventId));
 }
 
 export async function deleteFormFieldAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -236,5 +241,5 @@ export async function deleteFormFieldAction(_prev: ActionState, formData: FormDa
     return { error: e instanceof Error ? e.message : 'Could not delete field.' };
   }
 
-  redirect(`/tickets-command/events/${eventId}?tab=fields`);
+  redirect(fieldsReturnTo(formData, eventId));
 }

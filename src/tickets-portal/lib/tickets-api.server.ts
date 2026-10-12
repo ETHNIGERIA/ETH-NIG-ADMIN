@@ -159,6 +159,20 @@ export async function ticketsApiPatch<T, B = unknown>(path: string, body: B): Pr
   return unwrapEnvelope<T>(rawJson);
 }
 
+/** Authenticated PUT with JSON body. Server-only. */
+export async function ticketsApiPut<T, B = unknown>(path: string, body: B): Promise<T> {
+  const res = await authFetch(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (res.status === 401) redirect(TICKETS_LOGIN_PATH);
+  const rawJson: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) throwFromErrorBody(rawJson, res.status);
+  return unwrapEnvelope<T>(rawJson);
+}
+
 /**
  * Authenticated DELETE. Server-only. Handles 204 No Content.
  */
