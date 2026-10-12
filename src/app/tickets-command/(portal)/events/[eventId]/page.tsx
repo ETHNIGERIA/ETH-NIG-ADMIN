@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { notFound, unstable_rethrow } from 'next/navigation';
 import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
 import type { AdminEvent, Paginated } from '@/tickets-portal/types/admin-events';
@@ -19,6 +20,10 @@ import { getBuyerSite } from '@/tickets-portal/auth/server-config';
 import { PromoCodesManager } from '@/tickets-portal/components/promotions/PromoCodesManager';
 import { PromoCodesHowItWorks } from '@/tickets-portal/components/promotions/PromoCodesHowItWorks';
 import { fetchAllEventFormFields } from '@/tickets-portal/data/event-form-fields-read';
+import { EventRelatedSection } from '@/tickets-portal/components/events/EventRelatedSection';
+import { EventRelatedRecordsSkeleton } from '@/tickets-portal/components/events/EventRelatedRecords';
+import { TicketsLoadError } from '@/tickets-portal/components/TicketsLoadError';
+import { errorMessage, isNotFoundError } from '@/tickets-portal/lib/api-errors';
 
 const tableWrap =
   'overflow-hidden rounded-lg border border-stone-200/90 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]';
@@ -84,45 +89,45 @@ export default async function EventDetailPage({
   const sp = (await searchParams) ?? {};
   const activeTab = parseTab(sp.tab);
   const listPage = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
+  const requestedId = normalizeDocumentId(eventId);
 
-  let raw: AdminEvent;
-  try {
-    raw = await ticketsApiGet<AdminEvent>(`/admin/events/${eventId}`);
-  } catch {
-    notFound();
+  const [eventResult, tiersResult, fieldsResult] = await Promise.allSettled([
+    ticketsApiGet<AdminEvent>(`/admin/events/${requestedId}`),
+    ticketsApiGet<Paginated<AdminTicketTier>>(`/admin/events/${requestedId}/tiers?page=1&limit=100`),
+    fetchAllEventFormFields(requestedId),
+  ]);
+
+  if (eventResult.status === 'rejected') {
+    if (isNotFoundError(eventResult.reason)) notFound();
+    return (
+      <TicketsLoadError
+        title="Could not load event"
+        message={errorMessage(eventResult.reason, 'The tickets API did not respond.')}
+      />
+    );
   }
 
+  const raw = eventResult.value;
   const id = normalizeDocumentId(raw._id);
   const event: AdminEvent = { ...raw, _id: id };
 
-  // Each tab fetches only what it renders.
-  let tiers: AdminTicketTier[] = [];
-  if (activeTab !== 'discounts') {
-    try {
-      const p = await ticketsApiGet<Paginated<AdminTicketTier>>(
-        `/admin/events/${id}/tiers?page=1&limit=100`,
-      );
-      tiers = p.data.map((t) => ({ ...t, _id: normalizeDocumentId(t._id) }));
-    } catch {
-      tiers = [];
-    }
-  }
+  const tiers: AdminTicketTier[] =
+    tiersResult.status === 'fulfilled'
+      ? tiersResult.value.data.map((t) => ({ ...t, _id: normalizeDocumentId(t._id) }))
+      : [];
 
   let formFields: AdminFormField[] = [];
   let formFieldsLoadError: string | null = null;
-  if (activeTab === 'overview' || activeTab === 'fields') {
-    try {
-      const rawFields = await fetchAllEventFormFields(id);
-      formFields = sortFormFields(
-        rawFields.map((f) => ({
-          ...f,
-          _id: normalizeDocumentId(f._id),
-          eventId: normalizeDocumentId(f.eventId),
-        })),
-      );
-    } catch (e) {
-      formFieldsLoadError = e instanceof Error ? e.message : 'Could not load registration fields.';
-    }
+  if (fieldsResult.status === 'fulfilled') {
+    formFields = sortFormFields(
+      fieldsResult.value.map((f) => ({
+        ...f,
+        _id: normalizeDocumentId(f._id),
+        eventId: normalizeDocumentId(f.eventId),
+      })),
+    );
+  } else {
+    formFieldsLoadError = errorMessage(fieldsResult.reason, 'Could not load registration fields.');
   }
 
   let programAdmission: ProgramAdmission[] = [];
@@ -185,6 +190,7 @@ export default async function EventDetailPage({
       <div>
         <Link
           href="/tickets-command/events"
+          prefetch={false}
           className="text-[14px] text-stone-600 hover:text-stone-900"
         >
           ← Events
@@ -200,7 +206,6 @@ export default async function EventDetailPage({
           </Link>
         </p>
       </div>
-
       {/* Consolidated Navigation Tabs */}
       <div className="flex border-b border-stone-200 gap-6 overflow-x-auto">
         {TABS.map((t) => {
@@ -231,6 +236,11 @@ export default async function EventDetailPage({
           formFieldsLoadError={formFieldsLoadError}
           programAdmission={programAdmission}
           programAdmissionLoadError={programAdmissionLoadError}
+          relatedSlot={
+            <Suspense fallback={<EventRelatedRecordsSkeleton />}>
+              <EventRelatedSection eventId={id} slug={event.slug} />
+            </Suspense>
+          }
         />
       )}
 

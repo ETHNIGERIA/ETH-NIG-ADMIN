@@ -80,6 +80,10 @@ function EventPageNav({ eventId }: { eventId: string }) {
   const jump = [
     { href: '#section-status', label: 'Status' },
     { href: '#section-details', label: 'Details' },
+    { href: '#section-members', label: 'Members' },
+    { href: '#section-speakers', label: 'Speakers' },
+    { href: '#section-partners', label: 'Partners' },
+    { href: '#section-sponsors', label: 'Sponsors' },
     { href: '#section-registration-fields', label: 'Fields' },
     { href: '#section-tiers', label: 'Tiers' },
     { href: '#section-program-admission', label: 'Programs' },
@@ -120,6 +124,30 @@ function EventPageNav({ eventId }: { eventId: string }) {
       </Link>
       <span className="mx-2 h-3 w-px bg-stone-300" aria-hidden />
       <Link
+        href={`/tickets-command/events/${eventId}/speakers`}
+        prefetch={false}
+        className="font-medium text-stone-800 underline-offset-4 hover:underline"
+      >
+        Speakers
+      </Link>
+      <span className="mx-2 h-3 w-px bg-stone-300" aria-hidden />
+      <Link
+        href={`/tickets-command/events/${eventId}/partners`}
+        prefetch={false}
+        className="font-medium text-stone-800 underline-offset-4 hover:underline"
+      >
+        Partners
+      </Link>
+      <span className="mx-2 h-3 w-px bg-stone-300" aria-hidden />
+      <Link
+        href={`/tickets-command/events/${eventId}/sponsors`}
+        prefetch={false}
+        className="font-medium text-stone-800 underline-offset-4 hover:underline"
+      >
+        Sponsors
+      </Link>
+      <span className="mx-2 h-3 w-px bg-stone-300" aria-hidden />
+      <Link
         href={`/tickets-command/events/${eventId}?tab=discounts`}
         className="font-medium text-stone-800 underline-offset-4 hover:underline"
       >
@@ -137,6 +165,7 @@ export function EventDetailForms({
   formFieldsLoadError,
   programAdmission,
   programAdmissionLoadError,
+  relatedSlot,
 }: {
   event: AdminEvent;
   eventId: string;
@@ -147,6 +176,7 @@ export function EventDetailForms({
   programAdmission: ProgramAdmission[];
   /** When set, the program admission allowlist failed to load. */
   programAdmissionLoadError?: string | null;
+  relatedSlot?: ReactNode;
 }) {
   const [updateState, updateAction, updatePending] = useActionState(updateEventAction, undefined as ActionState);
   const [deleteState, deleteAction, deletePending] = useActionState(deleteEventAction, undefined as ActionState);
@@ -300,6 +330,11 @@ export function EventDetailForms({
           </button>
         </form>
       </DetailSection>
+      <br />
+      <hr />
+      <br />
+
+      {relatedSlot}
       <br />
       <hr />
       <br />
