@@ -7,3 +7,8 @@
 .integration-hint-details[open] summary svg {
   transform: rotate(180deg);
 }
+
+/* The parallel event console uses restrained corners, including reused admin controls. */
+.event-console-v2 :is(.rounded-lg, .rounded-xl, .rounded-2xl, .rounded-full) {
+  border-radius: 0.25rem;
+}

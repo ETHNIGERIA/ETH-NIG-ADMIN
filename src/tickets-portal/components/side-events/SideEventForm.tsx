@@ -49,6 +49,8 @@ export function SideEventForm({
   onDirtyChange,
   onPendingChange,
   disabled = false,
+  returnTo,
+  lockedParentSlug,
 }: {
   /** Omit to create. */
   event?: AdminSideEvent;
@@ -58,6 +60,8 @@ export function SideEventForm({
   onDirtyChange?: (dirty: boolean) => void;
   onPendingChange?: (pending: boolean) => void;
   disabled?: boolean;
+  returnTo?: string;
+  lockedParentSlug?: string;
 }) {
   const action = event ? updateSideEventAction : createSideEventAction;
   const [state, formAction, pending] = useActionState(action, undefined as SideEventActionState);
@@ -116,6 +120,7 @@ export function SideEventForm({
         </>
       ) : null}
       <input type="hidden" name="sessionsJson" value={sessionsJson} readOnly />
+      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
 
       {state?.error ? (
         <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-[14px] text-red-800">
@@ -149,7 +154,7 @@ export function SideEventForm({
 
         <div>
           <label htmlFor="se-parent" className={labelClass}>Main event<LockedNote locked={locked} /></label>
-          <EventCombobox
+          {lockedParentSlug ? <><input type="hidden" name="eventSlug" value={lockedParentSlug} /><div className={`${fieldClass} bg-stone-50`}>{initialParent?.name || event?.parent?.name || lockedParentSlug}</div></> : <EventCombobox
             name="eventSlug"
             inputId="se-parent"
             initial={parentInitial}
@@ -158,7 +163,7 @@ export function SideEventForm({
             optionLabel={(opt) => opt.name}
             disabled={locked}
             onSelectionChange={() => onDirtyChange?.(true)}
-          />
+          />}
           <p className={hintClass}>Optional. Lists only main events you manage. The main event must be published before this side event can be.</p>
         </div>
 
@@ -272,7 +277,7 @@ export function SideEventForm({
           {pending ? 'Saving…' : flyerUploading ? 'Uploading flyer…' : event ? 'Save changes' : 'Create draft'}
         </button>
         {!event ? (
-          <Link href="/tickets-command/side-events" className="rounded-md border border-stone-200 px-4 py-2.5 text-[14px] text-stone-600 hover:bg-stone-50">
+          <Link href={returnTo || '/tickets-command/side-events'} className="rounded-md border border-stone-200 px-4 py-2.5 text-[14px] text-stone-600 hover:bg-stone-50">
             Cancel
           </Link>
         ) : null}

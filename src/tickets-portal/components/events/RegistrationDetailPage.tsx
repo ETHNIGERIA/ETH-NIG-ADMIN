@@ -61,9 +61,11 @@ function TicketStatusBadge({ status }: { status: AdminTicket['status'] }) {
 export default async function RegistrationDetailPage({
   params,
   sideEvent = false,
+  consoleEventPath,
 }: {
   params: Promise<{ eventId: string; registrationId: string }>;
   sideEvent?: boolean;
+  consoleEventPath?: string;
 }) {
   const { eventId, registrationId } = await params;
 
@@ -78,7 +80,7 @@ export default async function RegistrationDetailPage({
 
   const eventNormalizedId = normalizeDocumentId(event._id);
   if (sideEvent && event.kind !== "side") notFound();
-  const eventPath = `/tickets-command/${event.kind === "side" ? "side-events" : "events"}/${eventNormalizedId}`;
+  const eventPath = consoleEventPath ?? `/tickets-command/${event.kind === "side" ? "side-events" : "events"}/${eventNormalizedId}`;
   if (event.kind === "side" && !sideEvent) redirect(`${eventPath}/registrations/${registrationId}`);
 
   let rawReg: AdminRegistration;
@@ -124,7 +126,7 @@ export default async function RegistrationDetailPage({
     <div className="space-y-8">
       <div>
         <Link
-          href={`${eventPath}?tab=registrations`}
+          href={consoleEventPath ? (sideEvent ? `${consoleEventPath}?view=registrations` : `${consoleEventPath}/registrations`) : `${eventPath}?tab=registrations`}
           className="text-[14px] text-stone-600 hover:text-stone-900"
         >
           ← All registrations
@@ -146,6 +148,7 @@ export default async function RegistrationDetailPage({
 
       <RegistrationDetailActions
         sideEvent={sideEvent}
+        consoleEventPath={consoleEventPath}
         eventId={eventNormalizedId}
         registrationId={reg._id}
         status={reg.status}

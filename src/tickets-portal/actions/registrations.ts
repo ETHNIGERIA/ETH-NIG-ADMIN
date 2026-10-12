@@ -5,6 +5,12 @@ import { ticketsApiDelete, ticketsApiPost } from '@/tickets-portal/lib/tickets-a
 import type { AdminRegistration } from '@/tickets-portal/types/admin-registrations';
 
 function eventPath(formData: FormData, eventId: string): string {
+  const consolePath = String(formData.get('consoleEventPath') ?? '');
+  const validId = /^[a-f0-9]{24}$/i.test(eventId);
+  const allowed = formData.get('eventKind') === 'side'
+    ? validId && new RegExp(`^/tickets-command/events-v2/[a-f0-9]{24}/side-events/${eventId}$`, 'i').test(consolePath)
+    : validId && consolePath === `/tickets-command/events-v2/${eventId}`;
+  if (allowed) return consolePath;
   const section = formData.get("eventKind") === "side" ? "side-events" : "events";
   return `/tickets-command/${section}/${encodeURIComponent(eventId)}`;
 }
@@ -51,7 +57,8 @@ export async function cancelRegistrationAction(
     return { error: e instanceof Error ? e.message : 'Could not cancel registration.' };
   }
 
-  redirect(`${eventPath(formData, eventId)}?tab=registrations`);
+  const path = eventPath(formData, eventId);
+  redirect(path.includes('/events-v2/') ? (formData.get('eventKind') === 'side' ? `${path}?view=registrations` : `${path}/registrations`) : `${path}?tab=registrations`);
 }
 
 export async function sendPaymentReminderAction(

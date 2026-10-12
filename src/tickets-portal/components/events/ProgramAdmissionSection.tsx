@@ -38,12 +38,14 @@ export function ProgramAdmissionSection({
   tiers,
   admission,
   loadError,
+  returnTo,
 }: {
   eventId: string;
   tiers: AdminTicketTier[];
   admission: ProgramAdmission[];
   /** When set, the allowlist failed to load — checkboxes below are hidden. */
   loadError?: string | null;
+  returnTo?: string;
 }) {
   // Server truth, kept in a ref so the resync effect can compare against it.
   const serverDraft = useMemo(() => toDraft(admission), [admission]);
@@ -150,7 +152,8 @@ export function ProgramAdmissionSection({
           </div>
 
           <form action={formAction} className="flex items-center gap-3">
-            <input type="hidden" name="eventId" value={eventId} />
+          <input type="hidden" name="eventId" value={eventId} />
+          {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
             <input
               type="hidden"
               name="changes"

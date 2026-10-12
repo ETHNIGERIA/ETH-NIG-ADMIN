@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   Calendar,
+  PanelsTopLeft,
   CalendarPlus,
   LayoutDashboard,
   Megaphone,
@@ -31,6 +32,7 @@ import { ToastProvider } from '@/tickets-portal/components/ui/ToastProvider';
 const TICKETS_NAV = [
   { href: '/tickets-command', label: 'Overview', icon: LayoutDashboard },
   { href: '/tickets-command/events', label: 'Events', icon: Calendar },
+  { href: '/tickets-command/events-v2', label: 'Event Console V2', icon: PanelsTopLeft },
   { href: '/tickets-command/side-events', label: 'Side Events', icon: CalendarPlus },
   { href: '/tickets-command/influencers', label: 'Influencers', icon: Megaphone },
   { href: '/tickets-command/applications', label: 'Applications', icon: ClipboardList },
@@ -58,6 +60,7 @@ export function TicketsCommandLayout({ children }: { children: ReactNode }) {
   const isBlogModule =
     pathname.startsWith('/tickets-command/blogs') ||
     pathname.startsWith('/tickets-command/sites');
+  const isEventConsole = pathname.startsWith('/tickets-command/events-v2');
 
   useEffect(() => {
     setMobileOpen(false);
@@ -198,7 +201,7 @@ export function TicketsCommandLayout({ children }: { children: ReactNode }) {
           </aside>
 
           <main className="min-w-0 flex-1 px-5 py-8 sm:px-8 sm:py-10 lg:px-14 lg:py-12">
-            <div className="mx-auto max-w-5xl">{children}</div>
+            <div className={`mx-auto ${isEventConsole ? 'max-w-7xl' : 'max-w-5xl'}`}>{children}</div>
           </main>
         </div>
       </div>

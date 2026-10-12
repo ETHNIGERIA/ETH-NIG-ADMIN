@@ -6,6 +6,11 @@ import { nairaInputToMinor } from '@/tickets-portal/lib/money-input';
 import type { AdminTicketTier } from '@/tickets-portal/types/admin-tiers';
 import type { ActionState } from '@/tickets-portal/actions/events';
 
+function tierReturnTo(formData: FormData, eventId: string) {
+  const expected = `/tickets-command/events-v2/${eventId}/tickets`;
+  return formData.get('returnTo') === expected ? expected : `/tickets-command/events/${eventId}`;
+}
+
 function parseBenefits(text: string): string[] {
   return text
     .split(/[\n,]+/)
@@ -106,7 +111,7 @@ export async function createTierAction(_prev: ActionState, formData: FormData): 
     return { error: e instanceof Error ? e.message : 'Could not create tier.' };
   }
 
-  redirect(`/tickets-command/events/${eventId}`);
+  redirect(tierReturnTo(formData, eventId));
 }
 
 export async function updateTierAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -189,7 +194,7 @@ export async function updateTierAction(_prev: ActionState, formData: FormData): 
     return { error: e instanceof Error ? e.message : 'Could not update tier.' };
   }
 
-  redirect(`/tickets-command/events/${eventId}`);
+  redirect(tierReturnTo(formData, eventId));
 }
 
 export async function deleteTierAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -206,5 +211,5 @@ export async function deleteTierAction(_prev: ActionState, formData: FormData): 
     return { error: e instanceof Error ? e.message : 'Could not remove tier.' };
   }
 
-  redirect(`/tickets-command/events/${eventId}`);
+  redirect(tierReturnTo(formData, eventId));
 }

@@ -275,6 +275,7 @@ function AddToDraftForm({ onAdd, tiers }: { onAdd: (row: CustomDraftInput) => vo
 
 function DraftPreview({
   eventId,
+  returnTo,
   draft,
   onRemove,
   onClear,
@@ -284,6 +285,7 @@ function DraftPreview({
   tiers,
 }: {
   eventId: string;
+  returnTo?: string;
   draft: ClientDraftRow[];
   onRemove: (id: string) => void;
   onClear: () => void;
@@ -395,6 +397,7 @@ function DraftPreview({
       <div className="flex flex-wrap items-center gap-3 border-t border-stone-100 px-4 py-4">
         <form action={action}>
           <input type="hidden" name="eventId" value={eventId} />
+          {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
           <input type="hidden" name="draft" value={payloadJson} />
           <button
             type="submit"
@@ -416,7 +419,7 @@ function DraftPreview({
   );
 }
 
-function FieldRow({ f, eventId, tiers }: { f: AdminFormField; eventId: string; tiers: AdminTicketTier[] }) {
+function FieldRow({ f, eventId, tiers, returnTo }: { f: AdminFormField; eventId: string; tiers: AdminTicketTier[]; returnTo?: string }) {
   const id = fieldId(f);
   const [upState, upAction, upPending] = useActionState(updateFormFieldAction, undefined as ActionState);
   const [delState, delAction, delPending] = useActionState(deleteFormFieldAction, undefined as ActionState);
@@ -448,6 +451,7 @@ function FieldRow({ f, eventId, tiers }: { f: AdminFormField; eventId: string; t
         </div>
         <form action={delAction} className="shrink-0">
           <input type="hidden" name="eventId" value={eventId} />
+          {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
           <input type="hidden" name="fieldId" value={id} />
           <button
             type="submit"
@@ -471,6 +475,7 @@ function FieldRow({ f, eventId, tiers }: { f: AdminFormField; eventId: string; t
           ) : null}
           <form action={upAction} className="space-y-3">
             <input type="hidden" name="eventId" value={eventId} />
+            {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
             <input type="hidden" name="fieldId" value={id} />
             <div>
               <label className={labelClass} htmlFor={`e-l-${id}`}>
@@ -550,12 +555,14 @@ export function FormFieldsManager({
   fields,
   tiers = [],
   fieldsLoadError,
+  returnTo,
 }: {
   eventId: string;
   fields: AdminFormField[];
   tiers?: AdminTicketTier[];
   /** When set, the form-fields list failed to load (never silently assume empty). */
   fieldsLoadError?: string | null;
+  returnTo?: string;
 }) {
   const [draft, setDraft] = useState<ClientDraftRow[]>([]);
 
@@ -635,7 +642,7 @@ export function FormFieldsManager({
         {fields.length > 0 ? (
           <ul className="mt-4 divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white px-4">
             {fields.map((f) => (
-              <FieldRow key={fieldId(f)} f={f} eventId={eventId} tiers={tiers} />
+              <FieldRow key={fieldId(f)} f={f} eventId={eventId} tiers={tiers} returnTo={returnTo} />
             ))}
           </ul>
         ) : null}
@@ -657,6 +664,7 @@ export function FormFieldsManager({
         <h2 className="text-[13px] font-medium uppercase tracking-wide text-stone-400">Draft</h2>
         <DraftPreview
           eventId={eventId}
+          returnTo={returnTo}
           draft={draft}
           onRemove={removeRow}
           onClear={clearDraft}
