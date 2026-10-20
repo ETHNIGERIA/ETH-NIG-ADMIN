@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import {
+  TICKETS_ACCEPT_INVITATION_PATH,
   TICKETS_FORGOT_PASSWORD_PATH,
   TICKETS_LOGIN_PATH,
   TICKETS_PORTAL_BASE_PATH,
@@ -16,6 +17,8 @@ export function middleware(request: NextRequest) {
   }
 
   if (
+    pathname === TICKETS_ACCEPT_INVITATION_PATH ||
+    pathname.startsWith(`${TICKETS_ACCEPT_INVITATION_PATH}/`) ||
     pathname === TICKETS_LOGIN_PATH ||
     pathname.startsWith(`${TICKETS_LOGIN_PATH}/`) ||
     pathname === TICKETS_FORGOT_PASSWORD_PATH ||

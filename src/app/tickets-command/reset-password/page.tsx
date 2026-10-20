@@ -1,10 +1,12 @@
+import type { Metadata } from 'next';
+export const dynamic = 'force-dynamic';
+export const metadata: Metadata = { referrer: 'no-referrer', robots: { index: false, follow: false } };
 import { TicketsResetPasswordForm } from '@/tickets-portal/components/TicketsResetPasswordForm';
 
 type SearchParams = { token?: string | string[] };
 
 function pickToken(raw: SearchParams['token']): string | undefined {
-  if (typeof raw === 'string') return raw;
-  if (Array.isArray(raw)) return raw[0];
+  if (typeof raw === 'string' && /^[a-f0-9]{64}$/.test(raw)) return raw;
   return undefined;
 }
 

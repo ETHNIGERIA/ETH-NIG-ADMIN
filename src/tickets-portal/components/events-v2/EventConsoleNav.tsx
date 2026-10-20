@@ -7,7 +7,7 @@ import { CreditCard, LayoutDashboard, Settings2, UsersRound, Workflow, Mic } fro
 const groups = [
   { label: 'Overview', first: '', sections: [''], icon: LayoutDashboard },
   { label: 'Setup', first: 'settings', sections: ['settings', 'tickets', 'fields'], icon: Settings2 },
-  { label: 'Attendees', first: 'registrations', sections: ['registrations'], icon: UsersRound },
+  { label: 'Attendees', first: 'registrations', sections: ['registrations', 'communications', 'check-in'], icon: UsersRound },
   { label: 'Finance', first: 'payments', sections: ['payments', 'promotions'], icon: CreditCard },
   { label: 'Program', first: 'programs', sections: ['programs', 'side-events'], icon: Workflow },
   { label: 'People', first: 'speakers', sections: ['speakers', 'sponsors', 'applications'], icon: Mic },
@@ -15,7 +15,7 @@ const groups = [
 
 const sectionLabels: Record<string, string> = {
   settings: 'Event settings', tickets: 'Tickets & pricing', fields: 'Registration form',
-  registrations: 'Registrations', payments: 'Payments', promotions: 'Promo codes',
+  registrations: 'Registrations', communications: 'Communications', 'check-in': 'Check-in', payments: 'Payments', promotions: 'Promo codes',
   programs: 'Program access', 'side-events': 'Side events', speakers: 'Speakers', sponsors: 'Sponsors',
 };
 

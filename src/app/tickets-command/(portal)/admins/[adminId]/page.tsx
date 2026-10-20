@@ -1,3 +1,5 @@
+import { unstable_rethrow } from 'next/navigation';
+import { AdminEditForm, ResendAdminInvitationForm } from '@/tickets-portal/components/admins/AdminManagementForms';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
@@ -39,7 +41,8 @@ export default async function AdminDetailPage({
   let raw: AdminAccount;
   try {
     raw = await ticketsApiGet<AdminAccount>(`/admin/admins/${adminId}`);
-  } catch {
+  } catch (error) {
+    unstable_rethrow(error);
     notFound();
   }
 
@@ -54,7 +57,7 @@ export default async function AdminDetailPage({
         </Link>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <h1 className="text-[28px] font-semibold tracking-tight text-stone-900">{admin.email}</h1>
-          <Badge active={admin.isActive} />
+          {admin.status === 'pending' ? <span className="text-sm text-amber-800">Invitation pending</span> : <Badge active={admin.isActive} />}
         </div>
         <p className="mt-2 text-[15px] text-stone-500">Admin account profile and access controls.</p>
       </div>
@@ -82,10 +85,10 @@ export default async function AdminDetailPage({
         <div className="mt-8 border-t border-stone-200 pt-6">
           <h2 className="text-[15px] font-semibold text-stone-900">Account actions</h2>
           <p className="mt-1 text-[14px] text-stone-500">
-            Toggle whether this admin account can sign in to the tickets app.
+            {admin.status === 'pending' ? 'This invitation does not grant sign-in access until the recipient sets a password.' : 'Edit account details and control whether this administrator can sign in.'}
           </p>
           <div className="mt-4">
-            <AdminDetailActions adminId={id} isActive={admin.isActive} />
+            {admin.status === 'pending' ? <><p className="mb-4 text-sm text-stone-600">Invitation expires: {fmt(admin.expiresAt)}</p><ResendAdminInvitationForm adminId={id} /></> : <div className="space-y-8"><AdminEditForm admin={admin} /><AdminDetailActions adminId={id} isActive={admin.isActive} /></div>}
           </div>
         </div>
       </div>

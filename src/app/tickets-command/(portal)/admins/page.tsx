@@ -1,3 +1,5 @@
+import { unstable_rethrow } from 'next/navigation';
+import { AdminInviteForm } from '@/tickets-portal/components/admins/AdminManagementForms';
 import Link from 'next/link';
 import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
@@ -45,8 +47,11 @@ export default async function AdminsPage({
 
   let result: Paginated<AdminAccount>;
   try {
+    const me = await ticketsApiGet<AdminAccount>('/admin/admins/me');
+    if (!me.canManageAdmins) return <div className="rounded-lg border border-stone-200 bg-white p-6"><h1 className="text-xl font-semibold text-stone-900">Administrator accounts</h1><p className="mt-2 text-stone-600">Your account does not have permission to manage administrators. Ask an account manager for access.</p></div>;
     result = await ticketsApiGet<Paginated<AdminAccount>>(`/admin/admins?page=${page}&limit=${limit}`);
   } catch (e) {
+    unstable_rethrow(e);
     const message = e instanceof Error ? e.message : 'Failed to load admins';
     return (
       <div className="rounded-lg border border-red-200 bg-red-50/90 px-6 py-5 text-red-900">
@@ -69,6 +74,8 @@ export default async function AdminsPage({
         </header>
       </div>
 
+      <AdminInviteForm />
+      <Link href="/tickets-command/admins/audit" className="inline-block text-sm text-stone-700 underline">View account audit log</Link>
       <div className={tableWrap}>
         <table className="w-full min-w-[420px]">
           <thead>
@@ -98,7 +105,7 @@ export default async function AdminsPage({
                     </td>
                     <td className={td}>{admin.name || '—'}</td>
                     <td className={td}>
-                      <Badge active={admin.isActive} />
+                      {admin.status === 'pending' ? <span className="rounded bg-amber-50 px-2 py-1 text-xs text-amber-800">{admin.expiresAt && new Date(admin.expiresAt) < new Date() ? 'Invitation expired' : 'Invitation pending'}</span> : <><Badge active={admin.isActive} />{admin.canManageAdmins ? <span className="ml-2 text-xs text-stone-500">Account manager</span> : null}</>}
                     </td>
                     <td className={`${td} hidden text-[13px] text-stone-500 md:table-cell`}>
                       {fmt(admin.createdAt)}

@@ -12,6 +12,8 @@ export type AdminEvent = {
   createdAt?: string;
   updatedAt?: string;
   timezone?: string;
+  whatsappUrl?: string;
+  telegramUrl?: string;
   days?: Array<{ key: string; date: string; label: string; startsAt?: string; endsAt?: string }>;
 };
 

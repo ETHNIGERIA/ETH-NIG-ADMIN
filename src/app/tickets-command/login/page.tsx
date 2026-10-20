@@ -1,3 +1,4 @@
+import { getTicketsApiBaseUrl } from '@/tickets-portal/auth/server-config';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import {
@@ -20,7 +21,15 @@ export default async function TicketsLoginPage({
   searchParams: Promise<SearchParams>;
 }) {
   const jar = await cookies();
-  if (jar.get(TICKETS_SESSION_COOKIE)) {
+  const token = jar.get(TICKETS_SESSION_COOKIE)?.value;
+  let validSession = false;
+  if (token) {
+    try {
+      const response = await fetch(`${getTicketsApiBaseUrl()}/admin/admins/me`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store', signal: AbortSignal.timeout(8_000) });
+      validSession = response.ok;
+    } catch { /* Render sign in when the session cannot be verified. */ }
+  }
+  if (validSession) {
     const sp = await searchParams;
     const candidate = pickNext(sp.next);
     const next =
