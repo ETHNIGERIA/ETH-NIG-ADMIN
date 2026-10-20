@@ -87,6 +87,12 @@ export function EventSettings({ event }: { event: AdminEvent }) {
             <p className="mt-1.5 text-xs text-stone-500">One origin per line. Used by the ticketing integration.</p>
             <div className="mt-3"><DetailIntegrationHint /></div>
           </div>
+          <div className="space-y-3 border-t border-stone-100 pt-5">
+            <h4 className="text-sm font-semibold">Event community links</h4>
+            <p className="text-xs text-stone-500">Included in confirmed ticket emails and ticket reminders. Leave blank to omit a link.</p>
+            <label className="block text-sm" htmlFor="event-whatsapp">WhatsApp URL<input id="event-whatsapp" name="whatsappUrl" type="url" defaultValue={event.whatsappUrl??''} className={consoleField} placeholder="https://chat.whatsapp.com/..." /></label>
+            <label className="block text-sm" htmlFor="event-telegram">Telegram URL<input id="event-telegram" name="telegramUrl" type="url" defaultValue={event.telegramUrl??''} className={consoleField} placeholder="https://t.me/..." /></label>
+          </div>
           <div className="flex justify-end border-t border-stone-100 pt-5">
             <button type="submit" disabled={updating} className="rounded-lg bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-50">{updating ? 'Saving…' : 'Save event settings'}</button>
           </div>

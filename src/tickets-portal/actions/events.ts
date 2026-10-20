@@ -118,6 +118,8 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
       ...(clearDays ? { days: [] } : days ? { days } : {}),
       timezone: String(formData.get('timezone') ?? 'Africa/Lagos').trim() || 'Africa/Lagos',
       allowedOrigins,
+      ...(formData.has('whatsappUrl') ? {whatsappUrl:String(formData.get('whatsappUrl')??'').trim()} : {}),
+      ...(formData.has('telegramUrl') ? {telegramUrl:String(formData.get('telegramUrl')??'').trim()} : {}),
     });
   } catch (e) {
     unstable_rethrow(e);

@@ -9,9 +9,10 @@ import {
 
 type Props = {
   initialToken?: string;
+  invitation?: boolean;
 };
 
-export function TicketsResetPasswordForm({ initialToken = '' }: Props) {
+export function TicketsResetPasswordForm({ initialToken = '', invitation = false }: Props) {
   const [token, setToken] = useState(initialToken);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -24,6 +25,11 @@ export function TicketsResetPasswordForm({ initialToken = '' }: Props) {
     setError(null);
     setSuccess(false);
 
+    if (newPassword.length < 8 || new TextEncoder().encode(newPassword).length > 72) {
+      setError('Use at least 8 characters and at most 72 UTF-8 bytes.');
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -31,7 +37,7 @@ export function TicketsResetPasswordForm({ initialToken = '' }: Props) {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/tickets-auth/reset-password', {
+      const res = await fetch(invitation ? '/api/tickets-auth/accept-invitation' : '/api/tickets-auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword }),
@@ -55,9 +61,9 @@ export function TicketsResetPasswordForm({ initialToken = '' }: Props) {
     <div className="flex min-h-screen items-center justify-center bg-[#fbfbfa] px-6 py-16">
       <div className="w-full max-w-[400px]">
         <div className="mb-10 space-y-2 text-center sm:text-left">
-          <h1 className="text-[26px] font-semibold tracking-tight text-stone-900">Choose new password</h1>
+          <h1 className="text-[26px] font-semibold tracking-tight text-stone-900">{invitation ? 'Set up your admin account' : 'Choose new password'}</h1>
           <p className="text-[15px] leading-relaxed text-stone-500">
-            Paste the token from your reset email and set a new admin password.
+            {invitation ? 'Choose a password to accept your invitation. Your account will be created after you submit.' : 'Choose a new admin password using your recovery link.'}
           </p>
         </div>
 
@@ -65,7 +71,7 @@ export function TicketsResetPasswordForm({ initialToken = '' }: Props) {
           {success ? (
             <div className="space-y-4">
               <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[14px] text-emerald-800">
-                Your password has been reset.
+                {invitation ? 'Your administrator account is ready. Sign in to continue.' : 'Your password has been reset. Sign in again on every device.'}
               </div>
               <Link
                 href={TICKETS_LOGIN_PATH}
@@ -82,7 +88,7 @@ export function TicketsResetPasswordForm({ initialToken = '' }: Props) {
                 </div>
               ) : null}
 
-              <div className="space-y-2">
+              {!initialToken ? <div className="space-y-2">
                 <label htmlFor="tickets-reset-token" className="block text-[13px] font-medium text-stone-700">
                   Token
                 </label>
@@ -94,7 +100,7 @@ export function TicketsResetPasswordForm({ initialToken = '' }: Props) {
                   onChange={(e) => setToken(e.target.value)}
                   className="w-full rounded-md border border-stone-200 bg-white px-3 py-2.5 text-[15px] text-stone-900 outline-none ring-stone-900/10 placeholder:text-stone-400 focus:border-stone-300 focus:ring-2 focus:ring-stone-900/10"
                 />
-              </div>
+              </div> : null}
 
               <div className="space-y-2">
                 <label
@@ -139,7 +145,7 @@ export function TicketsResetPasswordForm({ initialToken = '' }: Props) {
                 disabled={loading}
                 className="w-full rounded-md bg-stone-900 py-2.5 text-[15px] font-medium text-white shadow-sm transition hover:bg-stone-800 disabled:opacity-50"
               >
-                {loading ? 'Resetting…' : 'Reset password'}
+                {loading ? 'Saving…' : invitation ? 'Accept invitation' : 'Reset password'}
               </button>
             </form>
           )}
@@ -148,12 +154,12 @@ export function TicketsResetPasswordForm({ initialToken = '' }: Props) {
             <Link href={TICKETS_LOGIN_PATH} className="text-stone-500 hover:text-stone-900">
               Back to sign in
             </Link>
-            <Link
+            {!invitation ? <Link
               href={TICKETS_FORGOT_PASSWORD_PATH}
               className="text-stone-500 hover:text-stone-900"
             >
               Resend link
-            </Link>
+            </Link> : null}
           </div>
         </div>
       </div>
