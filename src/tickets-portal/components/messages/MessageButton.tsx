@@ -17,7 +17,11 @@ export function useMessageSentToast() {
   return (res: NonNullable<SendMessageState>) => {
     const queued = res.queued ?? 0;
     const missing = res.notFound ? ` ${res.notFound} skipped (deleted or not found).` : '';
-    toast.success('Email queued', `${queued} ${queued === 1 ? 'email' : 'emails'} sending now.${missing}`);
+    // Same dialog resubmitted after an error that had in fact queued: the first version is what goes out.
+    const earlier = res.alreadyQueued
+      ? ` ${res.alreadyQueued} were already queued by your earlier attempt; any edits were not applied to them.`
+      : '';
+    toast.success('Email queued', `${queued} ${queued === 1 ? 'email' : 'emails'} sending now.${missing}${earlier}`);
   };
 }
 

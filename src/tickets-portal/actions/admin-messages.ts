@@ -12,7 +12,9 @@ import {
   type MessageTarget,
 } from '@/tickets-portal/types/admin-messages';
 
-export type SendMessageState = { error?: string; queued?: number; notFound?: number } | undefined;
+export type SendMessageState =
+  | { error?: string; queued?: number; alreadyQueued?: number; notFound?: number }
+  | undefined;
 
 export async function sendAdminMessageAction(input: {
   targetType: MessageTarget;
@@ -38,14 +40,14 @@ export async function sendAdminMessageAction(input: {
   if (input.requestKey.length < 8 || input.requestKey.length > 100) return { error: 'Bad request key.' };
 
   try {
-    const res = await ticketsApiPost<{ queued: number; notFound: string[] }>('/admin/messages', {
+    const res = await ticketsApiPost<{ queued: number; alreadyQueued: number; notFound: string[] }>('/admin/messages', {
       targetType: input.targetType,
       ids,
       subject,
       body,
       requestKey: input.requestKey,
     });
-    return { queued: res.queued, notFound: res.notFound.length };
+    return { queued: res.queued, alreadyQueued: res.alreadyQueued, notFound: res.notFound.length };
   } catch (e) {
     unstable_rethrow(e);
     return { error: e instanceof Error ? e.message : 'Could not send the message.' };
