@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Loader2, Trash2 } from 'lucide-react';
+import { ChevronRight, Loader2, Mail, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 import {
   deleteCollabApplicationAction,
@@ -20,6 +20,10 @@ import { StatusFilter } from '@/tickets-portal/components/ui/StatusFilter';
 import { EventFilter, type EventOption } from '@/tickets-portal/components/ui/EventFilter';
 import { ModalShell } from '@/tickets-portal/components/ui/ModalShell';
 import { TableCard, tableTd as td, tableTh as th } from '@/tickets-portal/components/ui/TableCard';
+import { RowCheckbox, SelectAllCheckbox, useRowSelection } from '@/tickets-portal/components/ui/RowSelection';
+import { MessageComposer } from '@/tickets-portal/components/messages/MessageComposer';
+import { MessageHistory } from '@/tickets-portal/components/messages/MessageHistory';
+import { MessageButton, useMessageSentToast } from '@/tickets-portal/components/messages/MessageButton';
 
 const STATUS_STYLES: Record<CollabApplicationStatus, string> = {
   pending: 'border-amber-200 bg-amber-50 text-amber-700',
@@ -76,6 +80,9 @@ export function CollabApplicationsManager(props: Props) {
   const router = useRouter();
   const toast = useToast();
   const [selected, setSelected] = useState<AnyCollab | null>(null);
+  const [messageTarget, setMessageTarget] = useState<AnyCollab | null>(null);
+  const selection = useRowSelection(items.map((x) => x._id));
+  const sentToast = useMessageSentToast();
 
   const noun = kind === 'sponsor' ? 'sponsor application' : 'speaker application';
 
@@ -86,6 +93,11 @@ export function CollabApplicationsManager(props: Props) {
           {total} {total === 1 ? noun : `${noun}s`}
         </p>
         <div className="flex flex-wrap items-center gap-2">
+          {selection.selected.length > 0 ? (
+            <MessageButton targetType={kind} ids={selection.selected} onSent={selection.clear}>
+              Message selected ({selection.selected.length})
+            </MessageButton>
+          ) : null}
           {events !== undefined ? <EventFilter events={events} /> : null}
           <StatusFilter statuses={COLLAB_APPLICATION_STATUSES} />
         </div>
@@ -101,6 +113,14 @@ export function CollabApplicationsManager(props: Props) {
         minWidth="min-w-[720px]"
         head={
           <>
+            <th className={clsx(th, 'w-10')}>
+              <SelectAllCheckbox
+                checked={selection.allSelected}
+                indeterminate={selection.someSelected}
+                disabled={items.length === 0}
+                onChange={selection.toggleAll}
+              />
+            </th>
             <th className={th}>{kind === 'sponsor' ? 'Company' : 'Speaker'}</th>
             <th className={th}>{kind === 'sponsor' ? 'Type' : 'Topic'}</th>
             <th className={th}>Event</th>
@@ -116,6 +136,14 @@ export function CollabApplicationsManager(props: Props) {
             onClick={() => setSelected(item)}
             className="cursor-pointer transition-colors hover:bg-stone-50/70"
           >
+            {/* The row opens the detail; the checkbox cell must not. */}
+            <td className={clsx(td, 'w-10')} onClick={(e) => e.stopPropagation()}>
+              <RowCheckbox
+                label={`Select ${primaryLabel(kind, item)}`}
+                checked={selection.isSelected(item._id)}
+                onChange={() => selection.toggle(item._id)}
+              />
+            </td>
             <td className={td}>
               <p className="font-medium text-stone-900">{primaryLabel(kind, item)}</p>
               <p className="text-xs text-stone-500">{secondaryLabel(kind, item)}</p>
@@ -148,6 +176,24 @@ export function CollabApplicationsManager(props: Props) {
             router.refresh();
           }}
           onError={(title, message) => toast.error(title, message)}
+          onMessage={() => {
+            // One dialog at a time: the composer replaces the detail.
+            setMessageTarget(selected);
+            setSelected(null);
+          }}
+        />
+      )}
+
+      {messageTarget && (
+        <MessageComposer
+          targetType={kind}
+          ids={[messageTarget._id]}
+          recipientLabel={primaryLabel(kind, messageTarget)}
+          onClose={() => setMessageTarget(null)}
+          onSent={(res) => {
+            setMessageTarget(null);
+            sentToast(res);
+          }}
         />
       )}
     </div>
@@ -182,12 +228,14 @@ function DetailModal({
   onClose,
   onDone,
   onError,
+  onMessage,
 }: {
   kind: CollabApplicationKind;
   application: AnyCollab;
   onClose: () => void;
   onDone: (title: string, message: string) => void;
   onError: (title: string, message: string) => void;
+  onMessage: () => void;
 }) {
   const [status, setStatus] = useState<CollabApplicationStatus>(application.status);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -223,6 +271,15 @@ function DetailModal({
         {application.phone ? <span>{application.phone}</span> : null}
         <span>Submitted {formatDate(application.createdAt)}</span>
       </div>
+      <button
+        type="button"
+        onClick={onMessage}
+        disabled={isPending}
+        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+      >
+        <Mail className="h-3.5 w-3.5" />
+        Message
+      </button>
 
       <dl className="mt-5 space-y-4 text-sm">
         <Field label="Event" value={application.eventSlug} />
@@ -255,6 +312,10 @@ function DetailModal({
           </>
         )}
       </dl>
+
+      <div className="mt-5">
+        <MessageHistory targetType={kind} targetId={application._id} defaultOpen />
+      </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-2.5 border-t border-stone-100 pt-4">
         {confirmDelete ? (

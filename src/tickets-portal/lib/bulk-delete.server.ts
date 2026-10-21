@@ -1,9 +1,7 @@
 import { unstable_rethrow } from 'next/navigation';
 import { ticketsApiPost } from '@/tickets-portal/lib/tickets-api.server';
 import { isObjectId } from '@/tickets-portal/lib/is-object-id';
-
-/** Mirrors BULK_IDS_MAX in the API's BulkIdsDto. */
-export const BULK_DELETE_MAX = 100;
+import { BULK_IDS_MAX } from '@/tickets-portal/lib/bulk-ids';
 
 export type BulkDeleteState = { error?: string; deleted?: number; notFound?: number } | undefined;
 
@@ -11,7 +9,7 @@ export type BulkDeleteState = { error?: string; deleted?: number; notFound?: num
 export async function bulkDelete(path: string, ids: string[], noun: string): Promise<BulkDeleteState> {
   const unique = [...new Set(ids)];
   if (unique.length === 0) return { error: `Select at least one ${noun}.` };
-  if (unique.length > BULK_DELETE_MAX) return { error: `Select at most ${BULK_DELETE_MAX} at a time.` };
+  if (unique.length > BULK_IDS_MAX) return { error: `Select at most ${BULK_IDS_MAX} at a time.` };
   if (!unique.every(isObjectId)) return { error: 'Bad selection.' };
 
   try {
