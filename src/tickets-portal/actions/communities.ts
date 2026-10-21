@@ -3,6 +3,7 @@
 import { unstable_rethrow } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { ticketsApiDelete, ticketsApiPatch, ticketsApiPost } from '@/tickets-portal/lib/tickets-api.server';
+import { bulkDelete, type BulkDeleteState } from '@/tickets-portal/lib/bulk-delete.server';
 import type { AdminCommunity } from '@/tickets-portal/types/admin-communities';
 
 export type CommunityActionState = { error?: string; ok?: boolean } | undefined;
@@ -76,4 +77,10 @@ export async function deleteCommunityAction(
 
   revalidatePath('/tickets-command/communities');
   return { ok: true };
+}
+
+export async function bulkDeleteCommunitiesAction(ids: string[]): Promise<BulkDeleteState> {
+  const res = await bulkDelete('/admin/communities/bulk-delete', ids, 'community');
+  if (!res?.error) revalidatePath('/tickets-command/communities');
+  return res;
 }
