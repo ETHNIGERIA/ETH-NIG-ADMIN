@@ -160,6 +160,7 @@ export default async function EventSponsorsPage({
                       <ApplicationStatusActions
                         kind="sponsor"
                         applicationId={app._id}
+                        recipientEmail={app.email}
                         eventId={id}
                         currentStatus={app.status}
                       />

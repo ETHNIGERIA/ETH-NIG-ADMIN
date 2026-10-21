@@ -152,6 +152,7 @@ export default async function EventPartnersPage({
                     <ApplicationStatusActions
                       kind="partner"
                       applicationId={app._id}
+                      recipientEmail={app.email}
                       eventId={id}
                       currentStatus={app.status}
                     />

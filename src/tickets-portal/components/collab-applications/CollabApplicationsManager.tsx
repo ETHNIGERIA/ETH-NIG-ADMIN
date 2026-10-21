@@ -239,6 +239,9 @@ function DetailModal({
 }) {
   const [status, setStatus] = useState<CollabApplicationStatus>(application.status);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmApprove, setConfirmApprove] = useState(false);
+  // Moving to approved emails the applicant (server side), so it needs an explicit confirm.
+  const approving = status === 'approved' && application.status !== 'approved';
   const [isPending, startTransition] = useTransition();
   const title = primaryLabel(kind, application);
 
@@ -246,6 +249,7 @@ function DetailModal({
     startTransition(async () => {
       const res = await updateCollabApplicationStatusAction(kind, application._id, status);
       if (res.error) onError('Could not update status', res.error);
+      else if (approving) onDone('Application approved', `Acceptance email queued to ${application.email}.`);
       else onDone('Status updated', `${title} is now "${status}".`);
     });
 
@@ -343,7 +347,7 @@ function DetailModal({
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            disabled={isPending}
+            disabled={isPending || confirmApprove}
             className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -351,29 +355,54 @@ function DetailModal({
           </button>
         )}
 
-        <div className="flex items-center gap-2.5">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as CollabApplicationStatus)}
-            disabled={isPending}
-            className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm capitalize text-stone-800 outline-none focus:border-stone-400"
-          >
-            {COLLAB_APPLICATION_STATUSES.map((s) => (
-              <option key={s} value={s} className="capitalize">
-                {s}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={save}
-            disabled={isPending || confirmDelete || status === application.status}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
-          >
-            {isPending && !confirmDelete && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Save status
-          </button>
-        </div>
+        {confirmApprove ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-stone-600">
+              Approving emails an acceptance confirmation to {application.email}.
+            </span>
+            <button
+              type="button"
+              onClick={save}
+              disabled={isPending}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-800 disabled:opacity-50"
+            >
+              {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Approve and send email
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmApprove(false)}
+              disabled={isPending}
+              className="rounded-lg px-3 py-2 text-xs font-medium text-stone-600 hover:bg-stone-100 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5">
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as CollabApplicationStatus)}
+              disabled={isPending}
+              className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm capitalize text-stone-800 outline-none focus:border-stone-400"
+            >
+              {COLLAB_APPLICATION_STATUSES.map((s) => (
+                <option key={s} value={s} className="capitalize">
+                  {s}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={approving ? () => setConfirmApprove(true) : save}
+              disabled={isPending || confirmDelete || status === application.status}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
+            >
+              {isPending && !confirmDelete && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Save status
+            </button>
+          </div>
+        )}
       </div>
     </ModalShell>
   );

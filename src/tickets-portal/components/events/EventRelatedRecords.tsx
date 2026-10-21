@@ -296,6 +296,7 @@ export function EventRelatedRecords({
                         <ApplicationStatusActions
                           kind="speaker"
                           applicationId={app._id}
+                          recipientEmail={app.email}
                           eventId={eventId}
                           currentStatus={app.status}
                         />
@@ -374,6 +375,7 @@ export function EventRelatedRecords({
                       <ApplicationStatusActions
                         kind="partner"
                         applicationId={app._id}
+                        recipientEmail={app.email}
                         eventId={eventId}
                         currentStatus={app.status}
                       />
@@ -480,6 +482,7 @@ export function EventRelatedRecords({
                         <ApplicationStatusActions
                           kind="sponsor"
                           applicationId={app._id}
+                          recipientEmail={app.email}
                           eventId={eventId}
                           currentStatus={app.status}
                         />
