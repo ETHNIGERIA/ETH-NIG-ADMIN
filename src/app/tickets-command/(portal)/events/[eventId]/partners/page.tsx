@@ -5,6 +5,7 @@ import type { AdminEvent } from '@/tickets-portal/types/admin-events';
 import { normalizeDocumentId } from '@/tickets-portal/lib/mongo-json';
 import { fetchEventRelatedRecords } from '@/tickets-portal/data/event-related-read';
 import { ApplicationStatusActions } from '@/tickets-portal/components/events/ApplicationStatusActions';
+import { MessageButton, MessagePanel } from '@/tickets-portal/components/messages/MessageButton';
 import { TicketsLoadError } from '@/tickets-portal/components/TicketsLoadError';
 import { errorMessage, isNotFoundError } from '@/tickets-portal/lib/api-errors';
 
@@ -125,7 +126,14 @@ export default async function EventPartnersPage({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-[15px] font-semibold text-stone-900">Applications</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-[15px] font-semibold text-stone-900">Applications</h2>
+          {related.partnerApplications.length > 0 ? (
+            <MessageButton targetType="partner" ids={related.partnerApplications.map((app) => app._id)}>
+              Message all ({related.partnerApplications.length})
+            </MessageButton>
+          ) : null}
+        </div>
         {related.partnerApplications.length === 0 ? (
           <div className={`${tableWrap} px-4 py-16 text-center text-[14px] text-stone-400`}>
             No partner applications tied to this event.
@@ -144,6 +152,7 @@ export default async function EventPartnersPage({
                     <ApplicationStatusActions
                       kind="partner"
                       applicationId={app._id}
+                      recipientEmail={app.email}
                       eventId={id}
                       currentStatus={app.status}
                     />
@@ -172,6 +181,9 @@ export default async function EventPartnersPage({
                     </div>
                   ))}
                 </dl>
+                <div className="mt-5 border-t border-stone-100 pt-4">
+                  <MessagePanel targetType="partner" targetId={app._id} recipientLabel={app.companyName} />
+                </div>
               </article>
             ))}
           </div>

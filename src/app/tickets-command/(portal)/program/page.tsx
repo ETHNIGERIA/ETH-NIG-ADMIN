@@ -306,6 +306,7 @@ function BrandLists({ data }: { data: ProgramEventLists }) {
                           <ApplicationStatusActions
                             kind="speaker"
                             applicationId={app._id}
+                            recipientEmail={app.email}
                             eventId={eventId}
                             currentStatus={app.status}
                           />
@@ -426,6 +427,7 @@ function BrandLists({ data }: { data: ProgramEventLists }) {
                           <ApplicationStatusActions
                             kind="partner"
                             applicationId={app._id}
+                            recipientEmail={app.email}
                             eventId={eventId}
                             currentStatus={app.status}
                           />
@@ -538,6 +540,7 @@ function BrandLists({ data }: { data: ProgramEventLists }) {
                           <ApplicationStatusActions
                             kind="sponsor"
                             applicationId={app._id}
+                            recipientEmail={app.email}
                             eventId={eventId}
                             currentStatus={app.status}
                           />

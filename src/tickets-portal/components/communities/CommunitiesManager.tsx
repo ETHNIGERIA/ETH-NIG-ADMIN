@@ -5,12 +5,15 @@ import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
 import {
+  bulkDeleteCommunitiesAction,
   createCommunityAction,
   deleteCommunityAction,
   updateCommunityAction,
 } from '@/tickets-portal/actions/communities';
 import type { AdminCommunity } from '@/tickets-portal/types/admin-communities';
 import { ConfirmDialog } from '@/tickets-portal/components/ui/ConfirmDialog';
+import { RowCheckbox, SelectAllCheckbox, useRowSelection } from '@/tickets-portal/components/ui/RowSelection';
+import type { BulkDeleteState } from '@/tickets-portal/lib/bulk-delete.server';
 import { EmptyState, TableCard, tableRow, tableTd as td, tableTh as th } from '@/tickets-portal/components/ui/TableCard';
 import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
 import {
@@ -110,6 +113,9 @@ export function CommunitiesManager({ communities }: { communities: AdminCommunit
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminCommunity | null>(null);
   const [isDeleting, startDelete] = useTransition();
+  const selection = useRowSelection(communities.map((x) => x._id));
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [isBulkDeleting, startBulkDelete] = useTransition();
 
   const handleSaved = (message: string) => {
     setFormTarget(null);
@@ -132,15 +138,43 @@ export function CommunitiesManager({ communities }: { communities: AdminCommunit
     });
   };
 
+  const handleBulkDelete = () => {
+    const ids = selection.selected;
+    startBulkDelete(async () => {
+      const res = await bulkDeleteCommunitiesAction(ids).catch((): BulkDeleteState => ({ error: NETWORK_ERROR }));
+      if (res?.error) {
+        toast.error('Could not delete communities', res.error);
+        return;
+      }
+      setBulkOpen(false);
+      selection.clear();
+      const missing = res?.notFound ? ` ${res.notFound} not found.` : '';
+      toast.success('Communities deleted', `${res?.deleted ?? 0} removed.${missing}`);
+      router.refresh();
+    });
+  };
+
   return (
     <div className="space-y-5">
       <ListToolbar
         summary={`${communities.length} ${communities.length === 1 ? 'community' : 'communities'}`}
         action={
-          <button type="button" onClick={() => setFormTarget({ mode: 'create' })} className={primaryButtonClass}>
-            <Plus className="h-4 w-4" />
-            Add community
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {selection.selected.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setBulkOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition-colors hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete selected ({selection.selected.length})
+              </button>
+            ) : null}
+            <button type="button" onClick={() => setFormTarget({ mode: 'create' })} className={primaryButtonClass}>
+              <Plus className="h-4 w-4" />
+              Add community
+            </button>
+          </div>
         }
       />
 
@@ -156,6 +190,14 @@ export function CommunitiesManager({ communities }: { communities: AdminCommunit
         minWidth="min-w-[560px]"
         head={
           <>
+            <th className={`${th} w-10`}>
+              <SelectAllCheckbox
+                checked={selection.allSelected}
+                indeterminate={selection.someSelected}
+                disabled={communities.length === 0}
+                onChange={selection.toggleAll}
+              />
+            </th>
             <th className={th}>Name</th>
             <th className={`${th} hidden sm:table-cell`}>Region</th>
             <th className={th}>Promo codes</th>
@@ -165,6 +207,13 @@ export function CommunitiesManager({ communities }: { communities: AdminCommunit
       >
         {communities.map((c) => (
           <tr key={c._id} className={tableRow}>
+            <td className={`${td} w-10`}>
+              <RowCheckbox
+                label={`Select ${c.name}`}
+                checked={selection.isSelected(c._id)}
+                onChange={() => selection.toggle(c._id)}
+              />
+            </td>
             <td className={td}>
               <p className="font-semibold text-stone-900">{c.name}</p>
               {c.description ? <p className="mt-0.5 line-clamp-1 text-xs text-stone-500">{c.description}</p> : null}
@@ -226,6 +275,22 @@ export function CommunitiesManager({ communities }: { communities: AdminCommunit
             'Past sales stay recorded against its codes.',
           ]}
           confirmLabel="Delete community"
+        />
+      )}
+      {bulkOpen && (
+        <ConfirmDialog
+          isOpen
+          isLoading={isBulkDeleting}
+          onClose={() => setBulkOpen(false)}
+          onConfirm={handleBulkDelete}
+          variant="danger"
+          title="Delete selected communities"
+          description={`Remove ${selection.selected.length} selected ${selection.selected.length === 1 ? 'community' : 'communities'}?`}
+          implications={[
+            'All of their promo codes are deactivated and stop working at checkout.',
+            'Past sales stay recorded against their codes.',
+          ]}
+          confirmLabel="Delete selected"
         />
       )}
     </div>

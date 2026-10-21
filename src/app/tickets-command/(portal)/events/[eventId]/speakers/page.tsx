@@ -145,6 +145,7 @@ export default async function EventSpeakersPage({
                       <ApplicationStatusActions
                         kind="speaker"
                         applicationId={app._id}
+                        recipientEmail={app.email}
                         eventId={id}
                         currentStatus={app.status}
                       />

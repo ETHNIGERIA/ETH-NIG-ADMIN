@@ -3,6 +3,7 @@
 import { unstable_rethrow } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { ticketsApiDelete, ticketsApiPatch, ticketsApiPost } from '@/tickets-portal/lib/tickets-api.server';
+import { bulkDelete, type BulkDeleteState } from '@/tickets-portal/lib/bulk-delete.server';
 import type { AdminInfluencer } from '@/tickets-portal/types/admin-influencers';
 
 export type InfluencerActionState = { error?: string; ok?: boolean } | undefined;
@@ -79,4 +80,10 @@ export async function deleteInfluencerAction(
 
   revalidatePath('/tickets-command/influencers');
   return { ok: true };
+}
+
+export async function bulkDeleteInfluencersAction(ids: string[]): Promise<BulkDeleteState> {
+  const res = await bulkDelete('/admin/influencers/bulk-delete', ids, 'influencer');
+  if (!res?.error) revalidatePath('/tickets-command/influencers');
+  return res;
 }

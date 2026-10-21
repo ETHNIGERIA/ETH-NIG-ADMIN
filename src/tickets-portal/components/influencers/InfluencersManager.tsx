@@ -5,12 +5,15 @@ import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Megaphone, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
+  bulkDeleteInfluencersAction,
   createInfluencerAction,
   deleteInfluencerAction,
   updateInfluencerAction,
 } from '@/tickets-portal/actions/influencers';
 import type { AdminInfluencer } from '@/tickets-portal/types/admin-influencers';
 import { ConfirmDialog } from '@/tickets-portal/components/ui/ConfirmDialog';
+import { RowCheckbox, SelectAllCheckbox, useRowSelection } from '@/tickets-portal/components/ui/RowSelection';
+import type { BulkDeleteState } from '@/tickets-portal/lib/bulk-delete.server';
 import { EmptyState, TableCard, tableRow, tableTd as td, tableTh as th } from '@/tickets-portal/components/ui/TableCard';
 import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
 import {
@@ -115,6 +118,9 @@ export function InfluencersManager({ influencers }: { influencers: AdminInfluenc
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminInfluencer | null>(null);
   const [isDeleting, startDelete] = useTransition();
+  const selection = useRowSelection(influencers.map((x) => x._id));
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [isBulkDeleting, startBulkDelete] = useTransition();
 
   const handleSaved = (message: string) => {
     setFormTarget(null);
@@ -137,15 +143,43 @@ export function InfluencersManager({ influencers }: { influencers: AdminInfluenc
     });
   };
 
+  const handleBulkDelete = () => {
+    const ids = selection.selected;
+    startBulkDelete(async () => {
+      const res = await bulkDeleteInfluencersAction(ids).catch((): BulkDeleteState => ({ error: NETWORK_ERROR }));
+      if (res?.error) {
+        toast.error('Could not delete influencers', res.error);
+        return;
+      }
+      setBulkOpen(false);
+      selection.clear();
+      const missing = res?.notFound ? ` ${res.notFound} not found.` : '';
+      toast.success('Influencers deleted', `${res?.deleted ?? 0} removed.${missing}`);
+      router.refresh();
+    });
+  };
+
   return (
     <div className="space-y-5">
       <ListToolbar
         summary={`${influencers.length} ${influencers.length === 1 ? 'influencer' : 'influencers'}`}
         action={
-          <button type="button" onClick={() => setFormTarget({ mode: 'create' })} className={primaryButtonClass}>
-            <Plus className="h-4 w-4" />
-            Add influencer
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {selection.selected.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setBulkOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition-colors hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete selected ({selection.selected.length})
+              </button>
+            ) : null}
+            <button type="button" onClick={() => setFormTarget({ mode: 'create' })} className={primaryButtonClass}>
+              <Plus className="h-4 w-4" />
+              Add influencer
+            </button>
+          </div>
         }
       />
 
@@ -161,6 +195,14 @@ export function InfluencersManager({ influencers }: { influencers: AdminInfluenc
         minWidth="min-w-[560px]"
         head={
           <>
+            <th className={`${th} w-10`}>
+              <SelectAllCheckbox
+                checked={selection.allSelected}
+                indeterminate={selection.someSelected}
+                disabled={influencers.length === 0}
+                onChange={selection.toggleAll}
+              />
+            </th>
             <th className={th}>Name</th>
             <th className={`${th} hidden sm:table-cell`}>Email</th>
             <th className={th}>Promo codes</th>
@@ -170,6 +212,13 @@ export function InfluencersManager({ influencers }: { influencers: AdminInfluenc
       >
         {influencers.map((inf) => (
           <tr key={inf._id} className={tableRow}>
+            <td className={`${td} w-10`}>
+              <RowCheckbox
+                label={`Select ${inf.displayName}`}
+                checked={selection.isSelected(inf._id)}
+                onChange={() => selection.toggle(inf._id)}
+              />
+            </td>
             <td className={`${td} font-semibold text-stone-900`}>{inf.displayName}</td>
             <td className={`${td} hidden text-xs text-stone-600 sm:table-cell`}>{inf.email ?? '—'}</td>
             <td className={`${td} whitespace-nowrap text-xs text-stone-600`}>
@@ -228,6 +277,22 @@ export function InfluencersManager({ influencers }: { influencers: AdminInfluenc
             'Past sales stay recorded against their codes.',
           ]}
           confirmLabel="Delete influencer"
+        />
+      )}
+      {bulkOpen && (
+        <ConfirmDialog
+          isOpen
+          isLoading={isBulkDeleting}
+          onClose={() => setBulkOpen(false)}
+          onConfirm={handleBulkDelete}
+          variant="danger"
+          title="Delete selected influencers"
+          description={`Remove ${selection.selected.length} selected ${selection.selected.length === 1 ? 'influencer' : 'influencers'}?`}
+          implications={[
+            'All of their promo codes are deactivated and stop working at checkout.',
+            'Past sales stay recorded against their codes.',
+          ]}
+          confirmLabel="Delete selected"
         />
       )}
     </div>

@@ -2,12 +2,17 @@
 
 import { useActionState, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
-import { X } from 'lucide-react';
+import { Mail, X } from 'lucide-react';
 import { updateContactMessageStatusAction } from '@/tickets-portal/actions/contact';
 import type { ActionState } from '@/tickets-portal/actions/events';
 import { useToast } from '@/tickets-portal/components/ui/ToastProvider';
 import { StatusFilter } from '@/tickets-portal/components/ui/StatusFilter';
 import { TableCard } from '@/tickets-portal/components/ui/TableCard';
+import { RowCheckbox, SelectAllCheckbox, useRowSelection } from '@/tickets-portal/components/ui/RowSelection';
+import { MessageComposer } from '@/tickets-portal/components/messages/MessageComposer';
+import { MessageHistory } from '@/tickets-portal/components/messages/MessageHistory';
+import { MessageButton, useMessageSentToast } from '@/tickets-portal/components/messages/MessageButton';
+import { MESSAGE_SUBJECT_MAX } from '@/tickets-portal/types/admin-messages';
 import {
   CONTACT_MESSAGE_STATUSES,
   type ContactMessage,
@@ -47,6 +52,9 @@ export function ContactMessagesManager({
 }) {
   const toast = useToast();
   const [selected, setSelected] = useState<ContactMessage | null>(null);
+  const [replyTarget, setReplyTarget] = useState<ContactMessage | null>(null);
+  const selection = useRowSelection(items.map((x) => x._id));
+  const sentToast = useMessageSentToast();
 
   const [state, action, pending] = useActionState(
     updateContactMessageStatusAction,
@@ -67,7 +75,14 @@ export function ContactMessagesManager({
         <p className="text-sm text-stone-500">
           {total} {total === 1 ? 'message' : 'messages'}
         </p>
-        <StatusFilter statuses={CONTACT_MESSAGE_STATUSES} />
+        <div className="flex flex-wrap items-center gap-2">
+          {selection.selected.length > 0 ? (
+            <MessageButton targetType="contact" ids={selection.selected} onSent={selection.clear}>
+              Reply to selected ({selection.selected.length})
+            </MessageButton>
+          ) : null}
+          <StatusFilter statuses={CONTACT_MESSAGE_STATUSES} />
+        </div>
       </div>
 
       <TableCard
@@ -80,6 +95,14 @@ export function ContactMessagesManager({
         minWidth="min-w-[640px]"
         head={
           <>
+            <th className={clsx(th, 'w-10')}>
+              <SelectAllCheckbox
+                checked={selection.allSelected}
+                indeterminate={selection.someSelected}
+                disabled={items.length === 0}
+                onChange={selection.toggleAll}
+              />
+            </th>
             <th className={th}>From</th>
             <th className={th}>Subject</th>
             <th className={th}>Received</th>
@@ -93,6 +116,14 @@ export function ContactMessagesManager({
             onClick={() => setSelected(m)}
             className="cursor-pointer transition-colors hover:bg-stone-50/70"
           >
+            {/* The row opens the detail; the checkbox cell must not. */}
+            <td className={clsx(td, 'w-10')} onClick={(e) => e.stopPropagation()}>
+              <RowCheckbox
+                label={`Select message from ${m.name}`}
+                checked={selection.isSelected(m._id)}
+                onChange={() => selection.toggle(m._id)}
+              />
+            </td>
             <td className={td}>
               <p className="font-medium text-stone-900">{m.name}</p>
               <p className="text-xs text-stone-500">{m.email}</p>
@@ -160,6 +191,23 @@ export function ContactMessagesManager({
 
               <p className="whitespace-pre-wrap text-stone-800">{selected.message}</p>
 
+              <button
+                type="button"
+                onClick={() => {
+                  // The composer is a modal; close the panel so only one dialog is open.
+                  setReplyTarget(selected);
+                  setSelected(null);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-stone-800"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                Reply by email
+              </button>
+
+              <div className="border-t border-stone-100 pt-4">
+                <MessageHistory targetType="contact" targetId={selected._id} defaultOpen />
+              </div>
+
               <div className="border-t border-stone-100 pt-4">
                 <p className="text-[12px] font-medium uppercase tracking-wide text-stone-400">
                   Status
@@ -190,6 +238,20 @@ export function ContactMessagesManager({
             </div>
           </div>
         </div>
+      ) : null}
+
+      {replyTarget ? (
+        <MessageComposer
+          targetType="contact"
+          ids={[replyTarget._id]}
+          recipientLabel={replyTarget.name}
+          defaultSubject={`Re: ${replyTarget.subject}`.slice(0, MESSAGE_SUBJECT_MAX)}
+          onClose={() => setReplyTarget(null)}
+          onSent={(res) => {
+            setReplyTarget(null);
+            sentToast(res);
+          }}
+        />
       ) : null}
     </div>
   );

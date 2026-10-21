@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Loader2, Trash2 } from 'lucide-react';
+import { ChevronRight, Loader2, Mail, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 import {
   deleteCollabApplicationAction,
@@ -20,6 +20,10 @@ import { StatusFilter } from '@/tickets-portal/components/ui/StatusFilter';
 import { EventFilter, type EventOption } from '@/tickets-portal/components/ui/EventFilter';
 import { ModalShell } from '@/tickets-portal/components/ui/ModalShell';
 import { TableCard, tableTd as td, tableTh as th } from '@/tickets-portal/components/ui/TableCard';
+import { RowCheckbox, SelectAllCheckbox, useRowSelection } from '@/tickets-portal/components/ui/RowSelection';
+import { MessageComposer } from '@/tickets-portal/components/messages/MessageComposer';
+import { MessageHistory } from '@/tickets-portal/components/messages/MessageHistory';
+import { MessageButton, useMessageSentToast } from '@/tickets-portal/components/messages/MessageButton';
 
 const STATUS_STYLES: Record<CollabApplicationStatus, string> = {
   pending: 'border-amber-200 bg-amber-50 text-amber-700',
@@ -76,6 +80,9 @@ export function CollabApplicationsManager(props: Props) {
   const router = useRouter();
   const toast = useToast();
   const [selected, setSelected] = useState<AnyCollab | null>(null);
+  const [messageTarget, setMessageTarget] = useState<AnyCollab | null>(null);
+  const selection = useRowSelection(items.map((x) => x._id));
+  const sentToast = useMessageSentToast();
 
   const noun = kind === 'sponsor' ? 'sponsor application' : 'speaker application';
 
@@ -86,6 +93,11 @@ export function CollabApplicationsManager(props: Props) {
           {total} {total === 1 ? noun : `${noun}s`}
         </p>
         <div className="flex flex-wrap items-center gap-2">
+          {selection.selected.length > 0 ? (
+            <MessageButton targetType={kind} ids={selection.selected} onSent={selection.clear}>
+              Message selected ({selection.selected.length})
+            </MessageButton>
+          ) : null}
           {events !== undefined ? <EventFilter events={events} /> : null}
           <StatusFilter statuses={COLLAB_APPLICATION_STATUSES} />
         </div>
@@ -101,6 +113,14 @@ export function CollabApplicationsManager(props: Props) {
         minWidth="min-w-[720px]"
         head={
           <>
+            <th className={clsx(th, 'w-10')}>
+              <SelectAllCheckbox
+                checked={selection.allSelected}
+                indeterminate={selection.someSelected}
+                disabled={items.length === 0}
+                onChange={selection.toggleAll}
+              />
+            </th>
             <th className={th}>{kind === 'sponsor' ? 'Company' : 'Speaker'}</th>
             <th className={th}>{kind === 'sponsor' ? 'Type' : 'Topic'}</th>
             <th className={th}>Event</th>
@@ -116,6 +136,14 @@ export function CollabApplicationsManager(props: Props) {
             onClick={() => setSelected(item)}
             className="cursor-pointer transition-colors hover:bg-stone-50/70"
           >
+            {/* The row opens the detail; the checkbox cell must not. */}
+            <td className={clsx(td, 'w-10')} onClick={(e) => e.stopPropagation()}>
+              <RowCheckbox
+                label={`Select ${primaryLabel(kind, item)}`}
+                checked={selection.isSelected(item._id)}
+                onChange={() => selection.toggle(item._id)}
+              />
+            </td>
             <td className={td}>
               <p className="font-medium text-stone-900">{primaryLabel(kind, item)}</p>
               <p className="text-xs text-stone-500">{secondaryLabel(kind, item)}</p>
@@ -148,6 +176,24 @@ export function CollabApplicationsManager(props: Props) {
             router.refresh();
           }}
           onError={(title, message) => toast.error(title, message)}
+          onMessage={() => {
+            // One dialog at a time: the composer replaces the detail.
+            setMessageTarget(selected);
+            setSelected(null);
+          }}
+        />
+      )}
+
+      {messageTarget && (
+        <MessageComposer
+          targetType={kind}
+          ids={[messageTarget._id]}
+          recipientLabel={primaryLabel(kind, messageTarget)}
+          onClose={() => setMessageTarget(null)}
+          onSent={(res) => {
+            setMessageTarget(null);
+            sentToast(res);
+          }}
         />
       )}
     </div>
@@ -182,15 +228,20 @@ function DetailModal({
   onClose,
   onDone,
   onError,
+  onMessage,
 }: {
   kind: CollabApplicationKind;
   application: AnyCollab;
   onClose: () => void;
   onDone: (title: string, message: string) => void;
   onError: (title: string, message: string) => void;
+  onMessage: () => void;
 }) {
   const [status, setStatus] = useState<CollabApplicationStatus>(application.status);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmApprove, setConfirmApprove] = useState(false);
+  // Moving to approved emails the applicant (server side), so it needs an explicit confirm.
+  const approving = status === 'approved' && application.status !== 'approved';
   const [isPending, startTransition] = useTransition();
   const title = primaryLabel(kind, application);
 
@@ -198,6 +249,8 @@ function DetailModal({
     startTransition(async () => {
       const res = await updateCollabApplicationStatusAction(kind, application._id, status);
       if (res.error) onError('Could not update status', res.error);
+      // The server queues the email only if this save made the transition, so point to the history.
+      else if (approving) onDone('Application approved', 'The acceptance email is listed in its message history.');
       else onDone('Status updated', `${title} is now "${status}".`);
     });
 
@@ -223,6 +276,15 @@ function DetailModal({
         {application.phone ? <span>{application.phone}</span> : null}
         <span>Submitted {formatDate(application.createdAt)}</span>
       </div>
+      <button
+        type="button"
+        onClick={onMessage}
+        disabled={isPending}
+        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+      >
+        <Mail className="h-3.5 w-3.5" />
+        Message
+      </button>
 
       <dl className="mt-5 space-y-4 text-sm">
         <Field label="Event" value={application.eventSlug} />
@@ -256,6 +318,10 @@ function DetailModal({
         )}
       </dl>
 
+      <div className="mt-5">
+        <MessageHistory targetType={kind} targetId={application._id} defaultOpen />
+      </div>
+
       <div className="mt-6 flex flex-wrap items-center justify-between gap-2.5 border-t border-stone-100 pt-4">
         {confirmDelete ? (
           <div className="flex items-center gap-2">
@@ -282,7 +348,7 @@ function DetailModal({
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            disabled={isPending}
+            disabled={isPending || confirmApprove}
             className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -290,29 +356,54 @@ function DetailModal({
           </button>
         )}
 
-        <div className="flex items-center gap-2.5">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as CollabApplicationStatus)}
-            disabled={isPending}
-            className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm capitalize text-stone-800 outline-none focus:border-stone-400"
-          >
-            {COLLAB_APPLICATION_STATUSES.map((s) => (
-              <option key={s} value={s} className="capitalize">
-                {s}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={save}
-            disabled={isPending || confirmDelete || status === application.status}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
-          >
-            {isPending && !confirmDelete && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Save status
-          </button>
-        </div>
+        {confirmApprove ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-stone-600">
+              Approving emails an acceptance confirmation to {application.email}.
+            </span>
+            <button
+              type="button"
+              onClick={save}
+              disabled={isPending}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-800 disabled:opacity-50"
+            >
+              {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Approve and send email
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmApprove(false)}
+              disabled={isPending}
+              className="rounded-lg px-3 py-2 text-xs font-medium text-stone-600 hover:bg-stone-100 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5">
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as CollabApplicationStatus)}
+              disabled={isPending}
+              className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm capitalize text-stone-800 outline-none focus:border-stone-400"
+            >
+              {COLLAB_APPLICATION_STATUSES.map((s) => (
+                <option key={s} value={s} className="capitalize">
+                  {s}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={approving ? () => setConfirmApprove(true) : save}
+              disabled={isPending || confirmDelete || status === application.status}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
+            >
+              {isPending && !confirmDelete && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Save status
+            </button>
+          </div>
+        )}
       </div>
     </ModalShell>
   );
