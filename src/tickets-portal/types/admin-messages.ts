@@ -12,7 +12,7 @@ export interface AdminMessageRow {
   subject: string;
   body: string;
   sentByEmail?: string;
-  /** queued | processing | retryable_failed | accepted | permanent_failed | outcome_unknown */
+  /** queued | processing | retryable_failed | accepted | permanent_failed | outcome_unknown | cancelled */
   status: string;
   attempts: number;
   acceptedAt?: string;

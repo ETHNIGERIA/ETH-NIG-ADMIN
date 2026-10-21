@@ -83,7 +83,10 @@ export function ApplicationStatusActions({
           variant="warning"
           title={`Approve ${kind} application`}
           description={`Approving sends an acceptance confirmation email to ${recipientEmail ?? 'the applicant'}.`}
-          implications={['The email is sent right away and cannot be recalled.', "It is saved to the application's message history."]}
+          implications={[
+            'It is sent within a minute, and skipped if the application is rejected or deleted first.',
+            "It is saved to the application's message history.",
+          ]}
           confirmLabel="Approve and send email"
         />
       ) : null}

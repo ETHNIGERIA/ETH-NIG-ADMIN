@@ -11,6 +11,7 @@ const STATUS: Record<string, { label: string; className: string }> = {
   accepted: { label: 'Sent', className: 'bg-emerald-50 text-emerald-800' },
   permanent_failed: { label: 'Failed', className: 'bg-red-50 text-red-700' },
   outcome_unknown: { label: 'Unconfirmed', className: 'bg-amber-50 text-amber-900' },
+  cancelled: { label: 'Not sent', className: 'bg-stone-100 text-stone-600' },
 };
 const SENDING = { label: 'Sending', className: 'bg-stone-100 text-stone-600' };
 
@@ -91,7 +92,7 @@ export function MessageHistory({
                       {m.sentByEmail ? ` · by ${m.sentByEmail}` : ''} · to {m.to}
                     </p>
                     <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-stone-700">{m.body}</p>
-                    {m.status === 'permanent_failed' || m.status === 'outcome_unknown' ? (
+                    {['permanent_failed', 'outcome_unknown', 'cancelled'].includes(m.status) ? (
                       <p className="mt-1 text-red-700">{m.lastError}</p>
                     ) : null}
                   </li>

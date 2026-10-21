@@ -17,8 +17,10 @@ import {
 } from '@/tickets-portal/types/admin-messages';
 
 /**
- * Email form for one or many records. The request key lives for the dialog, so a
- * resubmit after a dropped connection cannot queue the same emails twice.
+ * Email form for one or many records. The request key lives for the whole dialog:
+ * an error here may be a timeout after the API already queued the emails, so a
+ * resubmit must reuse it. Rows exist only if queuing succeeded, so after a real
+ * rejection the same key still queues the corrected message.
  */
 export function MessageComposer({
   targetType,
@@ -36,7 +38,7 @@ export function MessageComposer({
   onClose: () => void;
   onSent: (res: NonNullable<SendMessageState>) => void;
 }) {
-  const [requestKey, setRequestKey] = useState(() => crypto.randomUUID());
+  const [requestKey] = useState(() => crypto.randomUUID());
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const count = ids.length;
@@ -56,14 +58,11 @@ export function MessageComposer({
           requestKey,
         });
         if (res?.error) {
-          // The server answered with a rejection, so nothing was queued: an edited resend is a new request.
-          setRequestKey(crypto.randomUUID());
           setError(res.error);
           return;
         }
         onSent(res ?? {});
       } catch {
-        // Outcome unknown: keep the key so a retry cannot double-send.
         setError(NETWORK_ERROR);
       }
     });

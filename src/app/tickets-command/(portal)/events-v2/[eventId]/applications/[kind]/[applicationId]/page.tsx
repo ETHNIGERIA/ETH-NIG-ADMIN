@@ -4,6 +4,7 @@ import { ticketsApiGet } from '@/tickets-portal/lib/tickets-api.server';
 import { eventConsoleHref, formatEventDate, loadConsoleEvent } from '@/tickets-portal/lib/event-console';
 import { SectionHeader, consoleCard } from '@/tickets-portal/components/events-v2/SectionHeader';
 import { updateEventApplicationStatus } from '@/tickets-portal/actions/event-console-applications';
+import { ApplicationStatusSubmit } from '@/tickets-portal/components/events-v2/ApplicationStatusSubmit';
 import type { SpeakerApplication, SponsorApplication } from '@/tickets-portal/types/admin-collab-applications';
 
 export const dynamic = 'force-dynamic';
@@ -38,11 +39,11 @@ export default async function EventApplicationDetail({ params }: { params: Promi
       </div>
       <form action={updateEventApplicationStatus} className={consoleCard}>
         <h3 className="text-base font-bold text-slate-900">Review status</h3>
-        <p className="mt-2 text-xs leading-relaxed text-slate-500">Approving a speaker application also creates or updates the public speaker profile for this event.</p>
+        <p className="mt-2 text-xs leading-relaxed text-slate-500">Approving emails the applicant an acceptance confirmation. For speakers it also creates or updates the public speaker profile for this event.</p>
         <input type="hidden" name="eventId" value={eventId} /><input type="hidden" name="kind" value={kind} /><input type="hidden" name="id" value={applicationId} />
         <label htmlFor="application-status" className="mt-5 block text-sm font-semibold text-slate-800">Status</label>
         <select id="application-status" name="status" defaultValue={application.status} className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100"><option value="pending">Pending</option><option value="contacted">Contacted</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
-        <button type="submit" className="mt-5 w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700">Save status</button>
+        <ApplicationStatusSubmit currentStatus={application.status} recipientEmail={application.email} />
       </form>
     </div>
   </div>;

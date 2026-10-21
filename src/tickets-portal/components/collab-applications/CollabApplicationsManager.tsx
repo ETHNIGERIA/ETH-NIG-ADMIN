@@ -249,7 +249,8 @@ function DetailModal({
     startTransition(async () => {
       const res = await updateCollabApplicationStatusAction(kind, application._id, status);
       if (res.error) onError('Could not update status', res.error);
-      else if (approving) onDone('Application approved', `Acceptance email queued to ${application.email}.`);
+      // The server queues the email only if this save made the transition, so point to the history.
+      else if (approving) onDone('Application approved', 'The acceptance email is listed in its message history.');
       else onDone('Status updated', `${title} is now "${status}".`);
     });
 
