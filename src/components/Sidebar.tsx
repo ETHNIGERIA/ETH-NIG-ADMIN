@@ -27,7 +27,7 @@ const navLinks = [
   { label: 'Blogs', icon: Newspaper, path: '/blogs' },
   { label: 'Career', icon: Briefcase, path: '/career' },
   { label: 'Campus', icon: Briefcase, path: '/campus' },
-  { label: 'Devcons', icon: Briefcase, path: '/devcons' },
+  { label: 'Devcons', icon: Briefcase, path: '/devcon' },
   { label: 'Founders', icon: Briefcase, path: '/founders' },
 ];
 
