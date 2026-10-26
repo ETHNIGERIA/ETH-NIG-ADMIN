@@ -48,7 +48,6 @@ const Devcon = () => {
     try {
       const q = query(
         collection(db, 'devcons'),
-        orderBy('fullName'),
         limit(PAGE_LIMIT)
       );
       const querySnapshot = await getDocs(q);
