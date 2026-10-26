@@ -32,6 +32,8 @@ interface CampusApplication {
   fullName: string;
   email: string;
   institution: string; 
+  phone:string;
+  telegram:string
   submittedAt?: { seconds: number } | null;
 }
 
@@ -150,6 +152,12 @@ const Devcon = () => {
                     <th className="p-5 text-xs uppercase tracking-widest font-bold text-[#686764]">
                       University/Institution
                     </th>
+                    <th className="p-5 text-xs uppercase tracking-widest font-bold text-[#686764]">
+                      Phone
+                    </th>
+                    <th className="p-5 text-xs uppercase tracking-widest font-bold text-[#686764]">
+                      Telegram
+                    </th>
                    
                   </tr>
                 </thead>
@@ -171,6 +179,12 @@ const Devcon = () => {
                       </td>
                       <td className="p-5 text-[#686764] text-sm">
                         {community.institution}
+                      </td>
+                      <td className="p-5 text-[#686764] text-sm">
+                        {community.phone}
+                      </td>
+                      <td className="p-5 text-[#686764] text-sm">
+                        {community.telegram}
                       </td>
                      
                       <td className="p-5 text-right space-x-4">
